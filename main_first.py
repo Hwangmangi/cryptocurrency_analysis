@@ -45,6 +45,23 @@ def create_lstm_model(input_shape):
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
+early_stopping_callback = tf.keras.callbacks.EarlyStopping(
+    monitor='val_loss',  
+    patience=20,  
+    mode='min',  
+    verbose=1 
+      )
+
+# ModelCheckpoint 콜백 설정
+savefile=f'24.06.06-1'
+checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=savefile,  
+    monitor='val_loss',  
+    mode='min ',  
+    save_best_only=True, 
+    verbose=1  
+      )
+
 # 모델 생성
 
 # 데이터셋 및 모델 설정
