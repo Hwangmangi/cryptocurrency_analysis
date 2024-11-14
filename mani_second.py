@@ -27,7 +27,7 @@ formatted_time = now.strftime("%Y%m%d_%H%M%S")
 
 tf.keras.mixed_precision.set_global_policy('float32')
 lr=0.001
-
+batch_size = 64
 # 시퀀스 길이와 feature 수 (시퀀스 길이와 feature 수는 저장할 때와 동일해야 함)
 window_size = 30
 num_features = 12  # feature 수는 데이터에 따라 조정
@@ -78,7 +78,7 @@ class NormalizeByFirstRow(tf.keras.layers.Layer):
 inputs = tf.keras.layers.Input(shape=(sequence_length, feature_length))  # 기존 입력 형태 (배치 크기 제외)
 normalized = NormalizeByFirstRow()(inputs)
 
-outputs = tf.keras.layers.Dense(1, activation='sigmoid')(d1) 
+outputs = tf.keras.layers.Dense(1, activation='sigmoid')(normalized) 
 model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
 
 print(model.summary())
