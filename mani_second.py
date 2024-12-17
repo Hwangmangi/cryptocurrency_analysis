@@ -77,8 +77,19 @@ class NormalizeByFirstRow(tf.keras.layers.Layer):
 
 inputs = tf.keras.layers.Input(shape=(sequence_length, feature_length))  # 기존 입력 형태 (배치 크기 제외)
 normalized = NormalizeByFirstRow()(inputs)
+l1 = tf.keras.layers.LSTM(256, return_sequences=True)(normalized)  # 첫 번째 LSTM 레이어
+l2 = tf.keras.layers.LSTM(128, return_sequences=True)(l1)  # 두 번째 LSTM 레이어
+lo = tf.keras.layers.LSTM(64, return_sequences=False)(l2)  # 세 번째 LSTM 레이어, 출력만 반환
 
-outputs = tf.keras.layers.Dense(1, activation='sigmoid')(normalized) 
+# 드롭아웃 레이어 추가 (과적합 방지)
+dro = tf.keras.layers.Dropout(0.3)(lo)
+
+# Dense 레이어들 추가
+d1 = tf.keras.layers.Dense(128, activation='relu')(dro)  # 첫 번째 Dense 레이어
+d2 = tf.keras.layers.Dropout(0.3)(d1)  # 드롭아웃
+d3 = tf.keras.layers.Dense(64, activation='relu')(d2)  # 두 번째 Dense 레이어
+do = tf.keras.layers.Dropout(0.3)(d3)  # 드롭아웃
+outputs = tf.keras.layers.Dense(1, activation='sigmoid')(do) 
 model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
 
 print(model.summary())

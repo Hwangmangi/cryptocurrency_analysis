@@ -4,7 +4,7 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
 # 데이터셋 경로
-dataset_path = "C:\\code\\python\\autohunting\\dataset"
+dataset_path = "C:\\code\\python\\autohunting\\dataset_raw"
 tfrecord_save_path = "C:\\code\\python\\autohunting\\dataset_TFrecord"
 os.makedirs(tfrecord_save_path, exist_ok=True)
 

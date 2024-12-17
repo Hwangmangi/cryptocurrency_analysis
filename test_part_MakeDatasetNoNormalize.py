@@ -9,7 +9,7 @@ tfrecord_save_path = "C:\\code\\python\\autohunting\\dataset_TFrecord"
 os.makedirs(tfrecord_save_path, exist_ok=True)
 
 # 시퀀스 길이 설정 (사용자가 지정)
-window_size = 30
+window_size = 10
 
 def load_and_preprocess_csv(file_path):
     """CSV 파일을 로드하고 데이터프레임으로 변환."""
@@ -19,6 +19,10 @@ def load_and_preprocess_csv(file_path):
 
 def create_sequences(data, window_size, filename):
     """시퀀스를 생성하고 마지막 행의 label을 타겟으로 설정."""
+    if len(data) < window_size:
+        print(f"[WARNING] 데이터 길이({len(data)})가 윈도우 크기({window_size})보다 작아 시퀀스를 생성할 수 없습니다: {filename}")
+        return [], [], []
+
     sequences = []
     labels = []
     sources = []
@@ -28,6 +32,7 @@ def create_sequences(data, window_size, filename):
         sequences.append(seq)
         labels.append(label)
         sources.append(filename)
+        
     return sequences, labels, sources
 
 def build_dataset(file_paths, window_size):
@@ -41,18 +46,17 @@ def build_dataset(file_paths, window_size):
         
         # 디버그 출력: 시퀀스와 레이블 일부 출력
         if sequences:
-            print(f"[DEBUG] 첫 시퀀스 데이터 예시: {sequences[0][:5]}")
+            print(f"[DEBUG] 만들어진 시퀀스의 shape: {sequences.shape}")
+            print(f"[DEBUG] 첫 시퀀스 데이터 예시: {sequences[0]}")
             print(f"[DEBUG] 첫 시퀀스 레이블: {labels[0]}, 출처: {sources[0]}")
         
-        all_sequences.extend(sequences)
-        all_labels.extend(labels)
-        all_sources.extend(sources)
-    
+ 
     print(f"[INFO] 전체 데이터셋 크기: {len(all_sequences)} 시퀀스, {len(all_labels)} 레이블")
     return all_sequences, all_labels, all_sources
 
 # CSV 파일 목록 가져오기
-csv_files = [os.path.join(dataset_path, file) for file in os.listdir(dataset_path) if file.endswith('.csv')]
+#csv_files = [os.path.join(dataset_path, file) for file in os.listdir(dataset_path) if file.endswith('.csv')]
+csv_files = "C:\\code\\python\\autohunting\\dataset\\aaa.csv"
 
 # 시퀀스 생성 및 디버그 출력
 sequences, labels, sources = build_dataset(csv_files, window_size)
@@ -98,6 +102,12 @@ write_tfrecord(train_tfrecord_path, train_sequences, train_labels, train_sources
 write_tfrecord(val_tfrecord_path, val_sequences, val_labels, val_sources)
 print(f"[INFO] TFRecord 저장 완료: {train_tfrecord_path}, {val_tfrecord_path}")
 
+
+
+
+
+
+
 def parse_tfrecord(example_proto):
     """TFRecord 파일에서 데이터를 파싱."""
     feature_description = {
@@ -127,5 +137,5 @@ print("[INFO] TFRecord 데이터셋 로드 완료")
 # 디버그: 로드된 데이터 확인
 for seq, lbl, src in train_dataset.take(1):
     print(f"[DEBUG] 로드된 시퀀스 shape: {seq.shape}")
-    print(f"[DEBUG] 로드된 시퀀스 데이터: {seq[0, :5]}")
+    print(f"[DEBUG] 로드된 시퀀스 데이터: {seq[0]}")
     print(f"[DEBUG] 로드된 레이블: {lbl[0]}, 출처: {src[0].numpy().decode()}")
