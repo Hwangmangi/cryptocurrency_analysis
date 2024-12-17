@@ -1,4 +1,6 @@
 ●1. tf.data.Dataset
+●2. TFRecord
+
 ====================================================================================================
 ●1. tf.data.Dataset
 
@@ -159,6 +161,7 @@
 
     4.4 concatenate
         TensorFlow의 tf.data.Dataset을 사용할 때, 여러 데이터셋을 합칠 때는 concatenate() 함수를 사용할 수 있습니다.
+        combined_dataset = dataset1.concatenate(dataset2)의 형태
         ┌──────────────────────────────────────────────────────────────────────┐
         import tensorflow as tf
         # 예시 데이터셋 1
@@ -208,12 +211,12 @@
 
         # TFRecord 파일로 저장
         with tf.io.TFRecordWriter('dataset.tfrecord') as writer:
-            for feature0, feature1 in dataset:
+            for feature0, feature1 in dataset: 
                 example = serialize_example(feature0.numpy(), feature1.numpy())
                 writer.write(example)
         └───────────────────────────────────────────────────────────────────────────────┘
     
-    (2) TFRecord 파일에서 데이터셋 불러오기
+    (2) TFRecord 파일에서 데이터셋 불러오기(실제 학습에 사용할때는 뭔가 더 수정을 해야한다)
         ┌───────────────────────────────────────────────────────────────────────────────┐
         import tensorflow as tf
         # TFRecord 파일에서 데이터셋 불러오기
@@ -233,5 +236,225 @@
         # 데이터셋 출력
         for item in dataset:
             print(item)
-    
         └───────────────────────────────────────────────────────────────────────────────┘
+
+    (3) 관련 함수 정리
+        1. tf.train.Feature
+            tf.train.Feature는 데이터를 TFRecord 형식으로 저장하기 위해 사용되는 기본 데이터 구조입니다.
+            데이터를 직렬화(serialize)하거나 복원(deserialize)하는 데 사용됩니다.
+            데이터는 3가지 타입만 지원합니다:
+            -int64_list: 정수(int64) 데이터를 표현.
+            -float_list: 부동소수(float32/float64) 데이터를 표현.
+            -bytes_list: 문자열 또는 바이트 데이터를 표현.
+            ┌─────────────────────────┐
+            tf.train.Feature(
+            bytes_list=None,
+                float_list=None,
+                int64_list=None
+            )
+            └────────────────────────┘
+            -bytes_list: tf.train.BytesList 객체, 문자열/바이트 데이터를 담습니다.
+            -float_list: tf.train.FloatList 객체, 부동소수 데이터를 담습니다.
+            -int64_list: tf.train.Int64List 객체, 정수 데이터를 담습니다.
+            ┌───────────────────────────────────────────────────────────┐
+            feature = tf.train.Feature(
+            int64_list=tf.train.Int64List(value=[10])  # 정수값 10 저장
+            )
+            └───────────────────────────────────────────────────────────┘
+
+        2. tf.train.Int64List, tf.train.FloatList, tf.train.BytesList
+            각각 tf.train.Feature의 데이터 타입을 정의하는 클래스입니다.
+            데이터를 TFRecord 파일에 저장하기 위해 각 타입으로 변환합니다.
+            ┌───────────────────────────────────────────────────────────┐
+            # 정수 리스트
+            tf.train.Int64List(value=[1, 2, 3])
+            # 부동소수점 리스트
+            tf.train.FloatList(value=[1.1, 2.2, 3.3])
+            # 바이트/문자열 리스트
+            tf.train.BytesList(value=["hello".encode(), "world".encode()])
+            └───────────────────────────────────────────────────────────┘
+            -value: 저장할 값의 리스트입니다. 리스트 형식이어야 합니다.
+            -정수: tf.train.Int64List
+            -부동소수점: tf.train.FloatList
+            -문자열/바이트: tf.train.BytesList
+
+            ┌───────────────────────────────────────────────────────────┐
+            int_list = tf.train.Int64List(value=[10, 20, 30])
+            float_list = tf.train.FloatList(value=[1.5, 2.5])
+            bytes_list = tf.train.BytesList(value=["example".encode()])
+            └───────────────────────────────────────────────────────────┘
+
+        3. tf.train.Features
+            여러 개의 tf.train.Feature를 묶어서 하나의 객체로 만듭니다.
+            딕셔너리 형태로 Feature를 관리합니다.
+            ┌─────────────────────┐
+            tf.train.Features(
+            feature=None
+            )
+            └─────────────────────┘
+            -feature: 딕셔너리 형태로 key-value 쌍을 가집니다.
+            -key: 문자열 이름 (데이터의 이름을 나타냄).
+            -value: tf.train.Feature 객체.
+
+            ┌──────────────────────────────────────────────────────────────────────────────────────────┐
+            features = tf.train.Features(
+                feature={
+                    'age': tf.train.Feature(int64_list=tf.train.Int64List(value=[25])),
+                    'height': tf.train.Feature(float_list=tf.train.FloatList(value=[5.8])),
+                    'name': tf.train.Feature(bytes_list=tf.train.BytesList(value=["Alice".encode()]))
+                }
+            )
+            └──────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+        4. tf.train.Example
+            tf.train.Features를 포함하는 최상위 데이터 구조로, 데이터를 TFRecord 형식으로 직렬화하기 위해 사용됩니다.
+            Example은 TensorFlow에서 직렬화된 데이터를 저장하고 불러오는 데 필요한 구조입니다.
+            ┌──────────────────────┐
+            tf.train.Example(
+                features=None
+            )
+            └─────────────────────┘
+            -features: tf.train.Features 객체를 받습니다.
+
+            ┌───────────────────────────────────────────────────────────────────────────────────────────┐
+            example = tf.train.Example(
+                features=tf.train.Features(
+                    feature={
+                        'age': tf.train.Feature(int64_list=tf.train.Int64List(value=[25])),
+                        'height': tf.train.Feature(float_list=tf.train.FloatList(value=[5.8])),
+                        'name': tf.train.Feature(bytes_list=tf.train.BytesList(value=["Alice".encode()]))
+                    }
+                )
+            )
+            └───────────────────────────────────────────────────────────────────────────────────────────┘
+
+        5. tf.io.TFRecordWriter
+            데이터를 TFRecord 파일에 저장하는 데 사용되는 클래스입니다.
+            직렬화된 데이터(SerializeToString으로 변환된 데이터)를 받아 파일로 저장합니다.
+            ┌─────────────────────────┐
+            tf.io.TFRecordWriter(
+                path
+            )
+            └─────────────────────────┘
+            -path: 데이터를 저장할 TFRecord 파일의 경로입니다.
+
+            ┌───────────────────────────────────────────────────────────┐
+            with tf.io.TFRecordWriter('example.tfrecord') as writer:
+                serialized_example = example.SerializeToString()
+                writer.write(serialized_example)
+            └───────────────────────────────────────────────────────────┘
+
+        6. tf.io.FixedLenFeature
+            TFRecord 파일에서 데이터를 읽을 때, 데이터의 고정 길이와 타입을 정의합니다.
+            데이터 파싱 시, TensorFlow에 데이터 구조를 알려주는 역할을 합니다.
+            ┌──────────────────────────┐
+            tf.io.FixedLenFeature(
+                shape,
+                dtype,
+                default_value=None
+            )
+            └──────────────────────────┘
+            -shape: 데이터의 고정된 크기(형태). 빈 리스트([])는 스칼라 값을 의미합니다.
+            -dtype: 데이터 타입 (tf.float32, tf.int64, tf.string).
+            -default_value (선택): 값이 없을 경우 기본값을 설정합니다.
+
+            ┌───────────────────────────────────────────────────────┐
+            keys_to_features = {
+                'age': tf.io.FixedLenFeature([], tf.int64),
+                'height': tf.io.FixedLenFeature([], tf.float32),
+                'name': tf.io.FixedLenFeature([], tf.string)
+            }
+            └───────────────────────────────────────────────────────┘
+
+        7. tf.io.parse_single_example
+            TFRecord 파일에 저장된 직렬화 데이터를 **파싱(복원)**하는 함수입니다.
+            데이터를 읽고, tf.io.FixedLenFeature로 정의된 구조에 따라 변환합니다.
+            ┌─────────────────────────────┐
+            tf.io.parse_single_example(
+            serialized,
+            features
+            )
+            └─────────────────────────────┘
+            -serialized: 직렬화된 데이터 (TFRecord 파일에서 읽은 데이터).
+            -features: 데이터를 복원할 구조를 정의한 딕셔너리 (tf.io.FixedLenFeature로 정의).
+            -리턴값 : 파싱된 데이터가 딕셔너리로 반환됩니다.
+
+            ┌───────────────────────────────────────────────────────────────────────────────┐
+            serialized_example = example.SerializeToString()
+            # 파싱 구조 정의
+            keys_to_features = {
+                'age': tf.io.FixedLenFeature([], tf.int64),
+                'height': tf.io.FixedLenFeature([], tf.float32),
+                'name': tf.io.FixedLenFeature([], tf.string)
+            }   
+            # 직렬화된 데이터를 파싱
+            parsed_example = tf.io.parse_single_example(serialized_example, keys_to_features)
+            print(parsed_example)
+            └───────────────────────────────────────────────────────────────────────────────┘
+
+
+====================================================================================================
+ ●2. TFRecord
+ TFRecord는 TensorFlow에서 데이터를 저장하고 처리하기 위해 설계된 바이너리 파일 형식입니다.
+대규모 데이터를 효율적으로 저장하고 읽어오기 위해 사용되며, 텍스트나 CSV와 같은 파일 형식보다 읽기/쓰기 성능이 뛰어나고, 확장성이 좋습니다.
+
+
+(1) TFRecord의 특징
+    -이진 형식(Binary Format):
+        사람이 읽을 수 있는 형식이 아니라, 데이터가 이진(binary) 형식으로 저장됩니다.
+        이로 인해 데이터 크기가 작아지고 입출력 속도가 빨라집니다.
+
+    -구조화된 데이터 저장:
+        하나의 TFRecord 파일에 여러 개의 데이터(샘플)를 저장할 수 있습니다.
+        예를 들어, 이미지 데이터와 레이블을 함께 저장하거나, 여러 속성을 포함하는 구조화 데이터를 저장할 수 있습니다.
+
+    -데이터 효율성:
+        CSV와 같은 텍스트 기반 파일은 용량이 크고 파싱 속도가 느린 반면, TFRecord는 데이터를 직렬화(serialize) 하여 저장하므로 더 적은 메모리와 디스크 공간을 사용합니다.
+
+    -TensorFlow와의 높은 호환성:
+        TensorFlow의 데이터 파이프라인(tf.data)과 통합되어 있어 대규모 데이터를 효율적으로 읽고 처리할 수 있습니다.
+       
+
+(2) TFRecord의 구조
+    TFRecord 파일은 샘플 데이터를 순차적으로 저장합니다.
+    각 데이터 샘플은 **Protocol Buffer(프로토콜 버퍼, Protobuf)**를 사용하여 직렬화됩니다.
+        
+    =주요 구성 요소
+        1.tf.train.Feature:
+            데이터를 저장하는 기본 단위입니다.
+            데이터는 세 가지 형식 중 하나로 저장됩니다:
+            -BytesList: 문자열 또는 바이트 데이터 (예: 이미지 파일, 텍스트).
+            -FloatList: 부동소수점 데이터 (예: 실수형 데이터).
+            -Int64List: 정수 데이터 (예: 카테고리, 레이블).
+       
+        2.tf.train.Features:
+            여러 개의 tf.train.Feature를 묶어서 하나의 데이터 샘플을 만듭니다.
+
+        3.tf.train.Example: 
+            단일 데이터 샘플을 포함하는 구조체.
+            tf.train.Features를 포함하여 데이터 샘플을 구성합니다.  
+
+(3) Protocol Buffer(프로토콜 버퍼)란?
+    **Protocol Buffer(ProtoBuf)**는 Google이 개발한 직렬화 및 역직렬화 라이브러리입니다.
+    주로 데이터를 저장하거나 네트워크를 통해 데이터를 전송할 때 사용됩니다.
+            
+    1.핵심 개념
+        -직렬화(Serialization):
+            데이터를 저장하거나 전송하기 위해 바이너리 형식으로 변환하는 과정.
+            예를 들어, 사람이 읽을 수 있는 JSON이나 XML 같은 데이터를 더 효율적인 바이너리 형식으로 변환.
+            
+        -역직렬화(Deserialization):
+            바이너리 형식을 다시 사람이 이해할 수 있는 데이터로 복원하는 과정.
+           
+    2.Protocol Buffer의 특징
+        -효율성:
+            데이터 크기가 작고, 직렬화/역직렬화 속도가 빠릅니다.
+            (JSON, XML보다 약 3~10배 더 빠르고 크기가 작음.)
+            
+        -다양한 언어 지원:
+            Python, C++, Java 등 다양한 언어에서 사용할 수 있습니다.
+           
+        -구조화된 데이터 지원:
+            정수, 문자열, 배열, 객체 등 다양한 데이터 형식을 지원합니다.
+            데이터를 정의하는 .proto 파일을 사용하여 구조를 명확히 설계할 수 있음.
