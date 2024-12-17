@@ -50,7 +50,6 @@
         └────────────────────────────────────────────────────┘
 
 2. Dataset 변환 함수
-
     2.1 map
         역할: 데이터셋의 각 요소에 대해 주어진 함수를 적용합니다.
         ┌────────────────────────────────────────────────────┐
@@ -131,7 +130,7 @@
     
 
 4. 고급 함수
-    4.1 window
+    ★4.1 window
         역할: 데이터셋을 고정 크기의 윈도우로 나눕니다.
         ┌─────────────────────────────────────────────────────────────┐
         dataset = tf.data.Dataset.range(10)
@@ -156,4 +155,83 @@
         dataset = dataset.interleave(lambda x: tf.data.Dataset.range(x), cycle_length=2)
         for item in dataset:
             print(item.numpy())
+        └───────────────────────────────────────────────────────────────────────────────┘
+
+    4.4 concatenate
+        TensorFlow의 tf.data.Dataset을 사용할 때, 여러 데이터셋을 합칠 때는 concatenate() 함수를 사용할 수 있습니다.
+        ┌──────────────────────────────────────────────────────────────────────┐
+        import tensorflow as tf
+        # 예시 데이터셋 1
+        dataset1 = tf.data.Dataset.from_tensor_slices([1, 2, 3])
+        # 예시 데이터셋 2
+        dataset2 = tf.data.Dataset.from_tensor_slices([4, 5, 6])
+        # 데이터셋 합치기
+        combined_dataset = dataset1.concatenate(dataset2)
+        # 출력
+        for item in combined_dataset:
+            print(item.numpy())
+        └──────────────────────────────────────────────────────────────────────┘
+
+5. 타겟값과 함께 데이터셋을 만들기
+    ┌───────────────────────────────────────────────────────────────────────────────┐
+    import tensorflow as tf
+
+    # 예시 데이터
+    data = [1, 2, 3, 4, 5]  # 특징값
+    targets = [0, 1, 0, 1, 0]  # 타겟값
+
+    # 데이터셋 생성
+    dataset = tf.data.Dataset.from_tensor_slices((data, targets))
+
+    # 데이터셋 사용
+    for x, y in dataset:
+        print(f'Feature: {x.numpy()}, Target: {y.numpy()}')
+    └───────────────────────────────────────────────────────────────────────────────┘
+
+6. 데이터셋 저장하고 불러오기
+    (1) TFRecord로 데이터셋 저장하기
+        ┌───────────────────────────────────────────────────────────────────────────────┐
+        import tensorflow as tf
+        # 예시 데이터셋
+        data = [1, 2, 3, 4, 5]
+        labels = [0, 1, 0, 1, 0]
+        # 데이터셋 생성
+        dataset = tf.data.Dataset.from_tensor_slices((data, labels))
+        # TFRecord 저장을 위한 직렬화 함수
+        def serialize_example(feature0, feature1):
+            feature = {
+                'feature0': tf.train.Feature(int64_list=tf.train.Int64List(value=[feature0])),
+                'feature1': tf.train.Feature(int64_list=tf.train.Int64List(value=[feature1])),
+            }
+            example = tf.train.Example(features=tf.train.Features(feature=feature))
+            return example.SerializeToString()
+
+        # TFRecord 파일로 저장
+        with tf.io.TFRecordWriter('dataset.tfrecord') as writer:
+            for feature0, feature1 in dataset:
+                example = serialize_example(feature0.numpy(), feature1.numpy())
+                writer.write(example)
+        └───────────────────────────────────────────────────────────────────────────────┘
+    
+    (2) TFRecord 파일에서 데이터셋 불러오기
+        ┌───────────────────────────────────────────────────────────────────────────────┐
+        import tensorflow as tf
+        # TFRecord 파일에서 데이터셋 불러오기
+        raw_dataset = tf.data.TFRecordDataset('dataset.tfrecord')
+        # 파싱 함수 정의
+        def _parse_function(proto):
+            # 데이터셋에서 사용된 특성 정의
+            keys_to_features = {
+                'feature0': tf.io.FixedLenFeature([], tf.int64),
+                'feature1': tf.io.FixedLenFeature([], tf.int64)
+            }
+            parsed_features = tf.io.parse_single_example(proto, keys_to_features)
+            return parsed_features['feature0'], parsed_features['feature1']
+    
+        # 데이터셋 파싱
+        dataset = raw_dataset.map(_parse_function)
+        # 데이터셋 출력
+        for item in dataset:
+            print(item)
+    
         └───────────────────────────────────────────────────────────────────────────────┘
