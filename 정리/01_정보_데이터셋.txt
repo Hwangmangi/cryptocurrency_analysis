@@ -1,8 +1,99 @@
-●1. tf.data.Dataset
+●0. tf.data
+●1. tf.data.Dataset 사용
 ●2. TFRecord
 
 ====================================================================================================
-●1. tf.data.Dataset
+●0. tf.data
+
+TensorFlow에서 데이터셋을 다루는 것은 효율적이고 빠르게 모델을 훈련하기 위해 매우 중요합니다. 
+TensorFlow 2.x에서는 특히 tf.data API를 사용하여 데이터를 처리하는 방법이 많이 사용됩니다. 
+이는 대규모 데이터를 메모리 효율적으로 로드하고, 전처리하고, 모델에 공급하는데 최적화되어 있습니다.
+
+(1)tf.data를 사용하는 이유
+    -대규모 데이터 처리: 메모리에 전부 적재할 수 없는 데이터도 효율적으로 로드 가능.
+    -데이터 증강 및 전처리: 데이터 로드 시 동적으로 변형 가능.
+    -병렬 처리: 데이터 로드 및 전처리를 병렬로 수행하여 훈련 시간을 단축.
+    -Batching & Prefetching: 미리 데이터를 로드하여 훈련이 중단 없이 이루어지도록 보장.
+
+(2)tf.data.Dataset의 병렬 처리 및 비동기적 데이터 공급 방식
+    TensorFlow의 tf.data API는 병렬 처리와 비동기 데이터 로드를 통해 모델 훈련을 가속화합니다. 
+    이를 위해 내부적으로 **스레드와 큐(queue)**를 사용하여 데이터를 동적으로 생성하고, fit() 함수에서 필요할 때마다 데이터를 가져와 사용할 수 있도록 설계되었습니다.
+
+    1. Prefetch를 통한 비동기 처리
+        dataset.prefetch(buffer_size=tf.data.AUTOTUNE)는 fit() 함수가 훈련을 진행하는 동안 다음 배치 데이터를 미리 가져오는 비동기 작업을 수행합니다.
+        이 작업은 별도의 스레드에서 이루어지기 때문에, 모델이 훈련 중일 때도 데이터 로드가 동시에 진행됩니다.
+        AUTOTUNE 옵션을 사용하면 TensorFlow가 자동으로 최적의 buffer_size를 결정하여 성능을 최적화합니다.
+    
+    2. 병렬 데이터 로드 및 변환
+        dataset.map()에서 num_parallel_calls=tf.data.AUTOTUNE 옵션을 사용하면, 데이터를 여러 스레드에서 병렬로 전처리할 수 있습니다.
+        예를 들어, 이미지 데이터에 대한 증강이나 정규화 작업이 여러 스레드에서 동시에 처리되기 때문에 데이터 로드와 변환 속도가 크게 향상됩니다.
+
+(3) tf.data.Dataset의 기본 형태 및 map함수 적용형태
+    1.단일 텐서
+        데이터셋의 각 요소가 단일 텐서로 구성됩니다.
+        ┌─────────────────────────────────────────────────────────────┐
+        dataset = tf.data.Dataset.from_tensor_slices([1, 2, 3, 4, 5])
+        # 출력: 1, 2, 3, 4, 5
+
+        def square(x):
+            return x ** 2
+        # map 적용
+        mapped_dataset = dataset.map(square)
+        for element in mapped_dataset:
+            print(element.numpy())  # 출력: 1, 4, 9, 16, 25
+        └─────────────────────────────────────────────────────────────┘
+
+    2. 텐서의 튜플
+        데이터셋의 각 요소가 텐서의 튜플로 구성됩니다.
+        예: (입력 데이터, 타겟 값) 또는 (이미지, 레이블)
+        ┌─────────────────────────────────────────────────────────────┐
+        inputs = [1, 2, 3, 4, 5]
+        labels = [0, 1, 0, 1, 0]
+        dataset = tf.data.Dataset.from_tensor_slices((inputs, labels))
+        # 출력: (1, 0), (2, 1), (3, 0), ...
+
+        def add_feature_label(feature, label):
+            return feature + 1, label * 2
+        # map 적용
+        mapped_dataset = dataset.map(add_feature_label)
+        for feature, label in mapped_dataset:
+            print(f'Feature: {feature.numpy()}, Label: {label.numpy()}')
+        # 출력:
+        # Feature: 2, Label: 0
+        # Feature: 3, Label: 2
+        # Feature: 4, Label: 0
+        # Feature: 5, Label: 2
+        # Feature: 6, Label: 0
+        └─────────────────────────────────────────────────────────────┘
+
+    3.텐서의 딕셔너리
+        데이터셋의 각 요소가 딕셔너리 형태의 텐서로 구성됩니다.
+        예: {'feature1': ..., 'feature2': ...}
+        ┌────────────────────────────────────────────────────┐
+        features = {
+            'feature1': [1, 2, 3],
+            'feature2': [4, 5, 6],
+        }
+        dataset = tf.data.Dataset.from_tensor_slices(features)
+        # 출력: {'feature1': 1, 'feature2': 0.1}, ...
+
+        def modify_features(sample):
+            return {
+                "feature1": sample["feature1"] * 2,
+                "feature2": sample["feature2"] + 3
+            }
+    
+        # map 적용
+        mapped_dataset = dataset.map(modify_features)
+        for element in mapped_dataset:
+            print(element)
+        # 출력:
+        # {'feature1': 2, 'feature2': 7}
+        # {'feature1': 4, 'feature2': 8}
+        # {'feature1': 6, 'feature2': 9}
+        └────────────────────────────────────────────────────┘
+====================================================================================================
+●1. tf.data.Dataset 사용
 
 1. Dataset 생성 함수
     1.1 from_tensor_slices
@@ -52,15 +143,22 @@
         └────────────────────────────────────────────────────┘
 
 2. Dataset 변환 함수
-    2.1 map
+    ★2.1 map
         역할: 데이터셋의 각 요소에 대해 주어진 함수를 적용합니다.
+
+        사용법 : mapped_dataset = dataset.map(map_func, num_parallel_calls=tf.data.AUTOTUNE)
+        -dataset: 변환을 적용할 TensorFlow 데이터셋 객체 (tf.data.Dataset).
+        -map_func: 데이터셋의 각 요소에 적용할 함수.
+        -num_parallel_calls: 병렬 처리를 위한 워커 수 (기본값은 None).
+            tf.data.AUTOTUNE을 사용하면 TensorFlow가 적절한 병렬 작업 개수를 자동으로 결정.
+
         ┌────────────────────────────────────────────────────┐
         dataset = tf.data.Dataset.range(5)
         dataset = dataset.map(lambda x: x * x)
         for item in dataset:
             print(item.numpy())
         └────────────────────────────────────────────────────┘
-
+    
     2.2 filter
         역할: 조건을 만족하는 데이터만 남깁니다.
 
@@ -175,23 +273,23 @@
             print(item.numpy())
         └──────────────────────────────────────────────────────────────────────┘
 
-5. 타겟값과 함께 데이터셋을 만들기
-    ┌───────────────────────────────────────────────────────────────────────────────┐
-    import tensorflow as tf
+# 5. 타겟값과 함께 데이터셋을 만들기
+#     ┌───────────────────────────────────────────────────────────────────────────────┐
+#     import tensorflow as tf
 
-    # 예시 데이터
-    data = [1, 2, 3, 4, 5]  # 특징값
-    targets = [0, 1, 0, 1, 0]  # 타겟값
+#     # 예시 데이터
+#     data = [1, 2, 3, 4, 5]  # 특징값
+#     targets = [0, 1, 0, 1, 0]  # 타겟값
 
-    # 데이터셋 생성
-    dataset = tf.data.Dataset.from_tensor_slices((data, targets))
+#     # 데이터셋 생성
+#     dataset = tf.data.Dataset.from_tensor_slices((data, targets))
 
-    # 데이터셋 사용
-    for x, y in dataset:
-        print(f'Feature: {x.numpy()}, Target: {y.numpy()}')
-    └───────────────────────────────────────────────────────────────────────────────┘
+#     # 데이터셋 사용
+#     for x, y in dataset:
+#         print(f'Feature: {x.numpy()}, Target: {y.numpy()}')
+#     └───────────────────────────────────────────────────────────────────────────────┘
 
-6. 데이터셋 저장하고 불러오기
+★6. 데이터셋 저장하고 불러오기
     (1) TFRecord로 데이터셋 저장하기
         ┌───────────────────────────────────────────────────────────────────────────────┐
         import tensorflow as tf
@@ -239,7 +337,7 @@
         └───────────────────────────────────────────────────────────────────────────────┘
 
     (3) 관련 함수 정리
-        1. tf.train.Feature
+        1). tf.train.Feature
             tf.train.Feature는 데이터를 TFRecord 형식으로 저장하기 위해 사용되는 기본 데이터 구조입니다.
             데이터를 직렬화(serialize)하거나 복원(deserialize)하는 데 사용됩니다.
             데이터는 3가지 타입만 지원합니다:
@@ -262,7 +360,7 @@
             )
             └───────────────────────────────────────────────────────────┘
 
-        2. tf.train.Int64List, tf.train.FloatList, tf.train.BytesList
+        2). tf.train.Int64List, tf.train.FloatList, tf.train.BytesList
             각각 tf.train.Feature의 데이터 타입을 정의하는 클래스입니다.
             데이터를 TFRecord 파일에 저장하기 위해 각 타입으로 변환합니다.
             ┌───────────────────────────────────────────────────────────┐
@@ -284,7 +382,7 @@
             bytes_list = tf.train.BytesList(value=["example".encode()])
             └───────────────────────────────────────────────────────────┘
 
-        3. tf.train.Features
+        3). tf.train.Features
             여러 개의 tf.train.Feature를 묶어서 하나의 객체로 만듭니다.
             딕셔너리 형태로 Feature를 관리합니다.
             ┌─────────────────────┐
@@ -307,7 +405,7 @@
             └──────────────────────────────────────────────────────────────────────────────────────────┘
 
 
-        4. tf.train.Example
+        4). tf.train.Example
             tf.train.Features를 포함하는 최상위 데이터 구조로, 데이터를 TFRecord 형식으로 직렬화하기 위해 사용됩니다.
             Example은 TensorFlow에서 직렬화된 데이터를 저장하고 불러오는 데 필요한 구조입니다.
             ┌──────────────────────┐
@@ -329,7 +427,7 @@
             )
             └───────────────────────────────────────────────────────────────────────────────────────────┘
 
-        5. tf.io.TFRecordWriter
+        5). tf.io.TFRecordWriter
             데이터를 TFRecord 파일에 저장하는 데 사용되는 클래스입니다.
             직렬화된 데이터(SerializeToString으로 변환된 데이터)를 받아 파일로 저장합니다.
             ┌─────────────────────────┐
@@ -345,7 +443,7 @@
                 writer.write(serialized_example)
             └───────────────────────────────────────────────────────────┘
 
-        6. tf.io.FixedLenFeature
+        6). tf.io.FixedLenFeature
             TFRecord 파일에서 데이터를 읽을 때, 데이터의 고정 길이와 타입을 정의합니다.
             데이터 파싱 시, TensorFlow에 데이터 구조를 알려주는 역할을 합니다.
             ┌──────────────────────────┐
@@ -367,7 +465,7 @@
             }
             └───────────────────────────────────────────────────────┘
 
-        7. tf.io.parse_single_example
+        7). tf.io.parse_single_example
             TFRecord 파일에 저장된 직렬화 데이터를 **파싱(복원)**하는 함수입니다.
             데이터를 읽고, tf.io.FixedLenFeature로 정의된 구조에 따라 변환합니다.
             ┌─────────────────────────────┐
@@ -392,6 +490,58 @@
             parsed_example = tf.io.parse_single_example(serialized_example, keys_to_features)
             print(parsed_example)
             └───────────────────────────────────────────────────────────────────────────────┘
+
+7. 실제 학습시 예시 코드
+    ┌───────────────────────────────────────────────────────────────────────────────┐
+    import tensorflow as tf
+
+    # TFRecord 파일 경로
+    tfrecord_file = 'dataset.tfrecord'
+
+    # 1. TFRecordDataset으로 데이터 로드
+    raw_dataset = tf.data.TFRecordDataset(tfrecord_file)
+
+    # 2. 데이터 파싱 함수 정의
+    def parse_example(proto):
+        # TFRecord 파일의 특성 정의
+        feature_description = {
+            'feature0': tf.io.FixedLenFeature([], tf.int64),
+            'feature1': tf.io.FixedLenFeature([], tf.int64),
+        }
+        parsed_features = tf.io.parse_single_example(proto, feature_description)
+        # 입력 (feature0)과 레이블 (feature1)을 반환
+        return parsed_features['feature0'], parsed_features['feature1']
+
+    # 3. 데이터셋 파싱
+    parsed_dataset = raw_dataset.map(parse_example, num_parallel_calls=tf.data.AUTOTUNE)
+
+    # 4. 데이터 전처리
+    def preprocess(feature, label):
+        # 입력 데이터를 float으로 변환
+        feature = tf.cast(feature, tf.float32)
+        # 레이블은 이미 적합하므로 그대로 사용
+        return feature, label
+
+    processed_dataset = parsed_dataset.map(preprocess, num_parallel_calls=tf.data.AUTOTUNE)
+
+    # 5. 데이터셋 셔플, 배치, prefetch
+    final_dataset = (processed_dataset
+                 .shuffle(buffer_size=1000)           # 셔플 버퍼 크기
+                 .batch(32)                           # 배치 크기
+                 .prefetch(buffer_size=tf.data.AUTOTUNE))  # Prefetch로 데이터 로딩 최적화
+
+    # 6. 모델 정의
+    model = tf.keras.Sequential([
+        tf.keras.layers.Dense(16, activation='relu', input_shape=(1,)),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+
+    # 7. 모델 컴파일
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+    # 8. 모델 학습
+    model.fit(final_dataset, epochs=5)
+    └───────────────────────────────────────────────────────────────────────────────┘
 
 
 ====================================================================================================
@@ -458,3 +608,4 @@
         -구조화된 데이터 지원:
             정수, 문자열, 배열, 객체 등 다양한 데이터 형식을 지원합니다.
             데이터를 정의하는 .proto 파일을 사용하여 구조를 명확히 설계할 수 있음.
+
