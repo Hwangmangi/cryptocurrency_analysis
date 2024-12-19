@@ -10,9 +10,9 @@ lr = 0.001
 
 data_path = r'C:\code\python\autohunting\dataset_raw_1hour22feature'
 output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
-tfrecord_filename = 'TFRecord.1hour22feature'
+tfrecord_filename = 'TFRecord.1hour22feature.tfrecord'
 tfrecord_path = os.path.join(output_dir, tfrecord_filename)
-sequence_length = 10  # 시퀀스 길이
+sequence_length = 30  # 시퀀스 길이
 feature_dim = 22  # 한 샘플의 특성 수 (레이블 제외)
 #===========================================[ 주요 함수 ]============================================================================
 def parse_function(proto):
