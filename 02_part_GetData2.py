@@ -4,9 +4,10 @@ import talib
 from binance.client import Client
 
 # Binance API Client 설정 (자신의 API 키와 시크릿 키를 여기에 입력)
-api_key = 'YOUR_API_KEY'
-api_secret = 'YOUR_API_SECRET'
+api_key = 'dQe5j00uyrvcyeJRGXQHRflYqCRZR3KTMBsVsKivpE8COOxN2RwxFyfFbZrFD6OZ'
+api_secret = 'kCPemcQpcvw9L1DhH4bIQXtNJASR5mLQT8KtJNb39PNGrjh7Hr8HYB4xd2ncIuH2'
 client = Client(api_key, api_secret)
+#    df = fetch_all_klines(symbol, Client.KLINE_INTERVAL_1HOUR, "1 Jan 2017")
 
 def fetch_all_klines(symbol, interval, start_str):
     """
@@ -39,7 +40,7 @@ def fetch_all_klines(symbol, interval, start_str):
                                        'taker_buy_quote', 'ignore'])
     return df[['timestamp', 'open', 'high', 'low', 'close', 'volume']].astype(float)
 
-def fetch_and_preprocess(symbol, scaling='standard'):
+def fetch_and_preprocess(symbol, scaling='none'):
     """
     특정 코인 심볼의 전체 기간의 1시간봉 데이터를 불러와 기술적 지표를 계산하고 정규화 또는 표준화를 진행합니다.
     
@@ -156,3 +157,4 @@ for ticker in symbols:
     print(f'{i}번째 : ticker, df_lable.shape:{df.shape}')
     save_data_to_csv(df, ticker)
     i+=1
+    break
