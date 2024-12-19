@@ -2,8 +2,13 @@ import os
 import numpy as np
 import tensorflow as tf
 from binance.client import Client
-
-#===========================================================================================================================================
+#============================================[ 사용자 설정 파라미터 ]==================================================================================
+tfrecord_filename = 'TFRecord.1hour22feature'
+sequence_length = 30  # 시퀀스 길이
+feature_dim = 22  # 한 샘플의 특성 수 (레이블 제외)
+normalization1 = 'standard' # 전체 데이터 정규화 'min-max', 'standard', 'none'
+normalization2 = 'none' # 시퀀스 정규화: 'min-max', 'standard', 'change-rate', 'none'
+#=============================================[ 주요 파라미터 ]========================================================================
 # Binance API 설정
 api_key = 'dQe5j00uyrvcyeJRGXQHRflYqCRZR3KTMBsVsKivpE8COOxN2RwxFyfFbZrFD6OZ'
 api_secret = 'kCPemcQpcvw9L1DhH4bIQXtNJASR5mLQT8KtJNb39PNGrjh7Hr8HYB4xd2ncIuH2'
@@ -12,11 +17,8 @@ client = Client(api_key, api_secret)
 # 데이터 경로 및 파라미터 설정
 data_path = r'C:\code\python\autohunting\dataset_raw_1hour22feature'
 output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
-tfrecord_filename = 'TFRecord.1hour22feature'
 tfrecord_path = os.path.join(output_dir, tfrecord_filename)
-sequence_length = 30  # 시퀀스 길이
-feature_dim = 22  # 한 샘플의 특성 수 (레이블 제외)
-#===========================================================================================================================================
+#============================================[ 주요 함수 ]============================================================================
 # TFRecord 직렬화 함수
 def serialize_example(features, label):
     feature = {
@@ -104,11 +106,11 @@ def normalize_sequence(sequence, normalization_type='none'):
         raise ValueError(f"Unsupported normalization type: {normalization_type}. Use 'min-max', 'standard', 'change-rate', or 'none'.")
 
     return normalized_sequence
-#===========================================================================================================================================
+#==============================================[ 실행 코드 ]===================================================================================
 # 데이터 처리 및 TFRecord 저장
 with tf.io.TFRecordWriter(tfrecord_path) as writer:
     exchange_info = client.get_exchange_info()
-    
+    iteration=1
     for s in exchange_info['symbols']:
         symbol = s['symbol']
         file_path = os.path.join(data_path, f'{symbol}.txt')
@@ -120,18 +122,18 @@ with tf.io.TFRecordWriter(tfrecord_path) as writer:
         # 데이터 로드
         try:
             data = np.loadtxt(file_path, delimiter='\t')
-        except Exception as e:
+        except Exception as e:  
             print(f'Error reading {file_path}: {e}')
             continue
         
         # 마지막 열을 label로 분리
         features = data[:, :-1]  # 모든 열 중 마지막 제외
         labels = data[:, -1].astype(int)  # 마지막 열 (정수형 변환)
-        features = normalize_features(features, normalization_type='none') # 전체 데이터 정규화 'min-max', 'standard', 'none'
+        features = normalize_features(features, normalization_type=normalization1) # 전체 데이터 정규화 'min-max', 'standard', 'none'
         # 시퀀스 데이터 생성
         for i in range(len(features) - sequence_length + 1):
             sequence = features[i:i + sequence_length]  # 시퀀스 길이로 자르기
-            sequence = normalize_sequence(sequence, normalization_type='none')  # 시퀀스 정규화: 'min-max', 'standard', 'change-rate', 'none'
+            sequence = normalize_sequence(sequence, normalization_type=normalization2)  # 시퀀스 정규화: 'min-max', 'standard', 'change-rate', 'none'
             sequence = sequence.flatten()            
             label = labels[i + sequence_length - 1]  # 시퀀스 끝의 label 사용
             
@@ -139,7 +141,8 @@ with tf.io.TFRecordWriter(tfrecord_path) as writer:
             example = serialize_example(sequence, label)
             writer.write(example)
         
-        print(f'Successfully processed and saved {symbol}.txt to TFRecord.')
+        print(f'{iteration}.Successfully processed and saved {symbol}.txt to TFRecord.')
+        iteration+=1
 
 print(f'TFRecord saved to {tfrecord_path}')
 #===========================================================================================================================================

@@ -9,9 +9,9 @@ api_secret = 'kCPemcQpcvw9L1DhH4bIQXtNJASR5mLQT8KtJNb39PNGrjh7Hr8HYB4xd2ncIuH2'
 
 client = Client(api_key, api_secret)
 # 데이터 경로 및 파라미터 설정
-data_path = 'C:/code/python/autohunting/dataset_raw_1hour22feature'
-output_dir = 'C:/code/python/autohunting/dataset_THRecord'
-tfrecord_filename = 'TFRecord.test_feature22hour1.tfrecord'
+data_path = r'C:\code\python\autohunting\dataset_raw_1hour22feature'
+output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
+tfrecord_filename = 'test_1hour22feature'
 tfrecord_path = os.path.join(output_dir, tfrecord_filename)
 sequence_length = 10  # 시퀀스 길이
 feature_dim = 22  # 한 샘플의 특성 수 (레이블 제외)
@@ -31,7 +31,9 @@ def parse_function(proto):
         'label': tf.io.FixedLenFeature([], tf.int64),
     }
     parsed_features = tf.io.parse_single_example(proto, features)
-    return parsed_features['features'], parsed_features['label']
+    features_reshaped = tf.reshape(parsed_features['features'], [sequence_length, feature_dim])
+
+    return features_reshaped, parsed_features['label']
 
 def normalize_features(features, normalization_type='none'):
     """
@@ -102,8 +104,10 @@ def normalize_sequence(sequence, normalization_type='none'):
     return normalized_sequence
 #===========================================================================================================================================
 # 데이터 처리 및 TFRecord 저장
-with tf.io.TFRecordWriter(tfrecord_path) as writer:
+print('here1')
 
+with tf.io.TFRecordWriter(tfrecord_path) as writer:
+    print('here2')
     file_path = os.path.join(data_path, f'BTCUSDT.txt')
     data = np.loadtxt(file_path, delimiter='\t')
 
@@ -111,12 +115,13 @@ with tf.io.TFRecordWriter(tfrecord_path) as writer:
     features = data[:, :-1]  # 모든 열 중 마지막 제외
     labels = data[:, -1].astype(int)  # 마지막 열 (정수형 변환)
     features = normalize_features(features, normalization_type='none') # 전체 데이터 정규화 'min-max', 'standard', 'none'
-
+    print(f'DEBUG : feature.shape : {features.shape}')
     # 시퀀스 데이터 생성
     for i in range(len(features) - sequence_length + 1):
         sequence = features[i:i + sequence_length]  # 시퀀스 길이로 자르기
-        sequence = normalize_sequence(sequence, normalization_type='none')  # 시퀀스 정규화: 'min-max', 'standard', 'change-rate', 'none'
-        sequence = sequence.flatten()    
+        # print(f'DEBUG : sequence.shape : {sequence.shape}')
+        sequence = normalize_sequence(sequence, normalization_type='change-rate')  # 시퀀스 정규화: 'min-max', 'standard', 'change-rate', 'none'
+        sequence = sequence.flatten()   
         label = labels[i + sequence_length - 1]  # 시퀀스 끝의 label 사용
             
         # TFRecord로 저장
@@ -136,8 +141,8 @@ dataset = raw_dataset.map(parse_function)
 # 첫 번째, 두 번째, 세 번째 샘플 출력
 for i, (features, label) in enumerate(dataset.take(3)):  # 처음 3개 샘플만 가져옴
     print(f"Sample {i + 1}:")
-    print(f"Features: {features.numpy()}")
-    print(f"Label: {label.numpy()}\n")
+    print(f"Features{features.shape}{type(features)}: {features.numpy()}")
+    print(f"Label{label.shape}{type(label)}: {label.numpy()}\n")
 
 
 # 전체 데이터셋을 리스트로 변환 (메모리에 로드)
@@ -148,13 +153,13 @@ print("First 3 samples:")
 for i in range(3):
     features, label = all_samples[i]
     print(f"Sample {i + 1}:")
-    print(f"Features: {features.numpy()}")
-    print(f"Label: {label.numpy()}\n")
+    print(f"Features{features.shape}{type(features)}: {features.numpy()}")
+    print(f"Label{label.shape}{type(label)}: {label.numpy()}\n")
 
 # 마지막 3개 샘플 출력
 print("Last 3 samples:")
 for i in range(-3, 0):
     features, label = all_samples[i]
     print(f"Sample {len(all_samples) + i + 1}:")
-    print(f"Features: {features.numpy()}")
-    print(f"Label: {label.numpy()}\n")
+    print(f"Features{features.shape}{type(features)}: {features.numpy()}")
+    print(f"Label{label.shape}{type(label)}: {label.numpy()}\n")
