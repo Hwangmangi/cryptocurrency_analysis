@@ -3,11 +3,11 @@ import numpy as np
 import tensorflow as tf
 from binance.client import Client
 #============================================[ 사용자 설정 파라미터 ]==================================================================================
-tfrecord_filename = '1hour22feature_sequenstand.tfrecord'
+tfrecord_filename = '1hour23feature_allpartnor.tfrecord'
 sequence_length = 30  # 시퀀스 길이
-feature_dim = 22  # 한 샘플의 특성 수 (레이블 제외)
-all_normalization = 'none' # 전체 데이터 정규화 'min-max', 'standard', 'none'
-sequence_normalization = 'standard' # 시퀀스 정규화: 'min-max', 'standard', 'change-rate', 'none'
+feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
+all_normalization = 'partial-normalization' # 전체 데이터 정규화 'min-max', 'standard', 'partial-normalization', 'none'
+sequence_normalization = 'none' # 시퀀스 정규화: 'min-max', 'standard', 'partial-normalization', 'change-rate', 'none'
 #=============================================[ 주요 파라미터 ]========================================================================
 # Binance API 설정
 api_key = 'dQe5j00uyrvcyeJRGXQHRflYqCRZR3KTMBsVsKivpE8COOxN2RwxFyfFbZrFD6OZ'
@@ -15,7 +15,7 @@ api_secret = 'kCPemcQpcvw9L1DhH4bIQXtNJASR5mLQT8KtJNb39PNGrjh7Hr8HYB4xd2ncIuH2'
 
 client = Client(api_key, api_secret)
 # 데이터 경로 및 파라미터 설정
-data_path = r'C:\code\python\autohunting\dataset_raw_1hour22feature'
+data_path = r'C:\code\python\autohunting\dataset_raw_1hour23feature'
 output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
 tfrecord_path = os.path.join(output_dir, tfrecord_filename)
 #============================================[ 주요 함수 ]============================================================================
@@ -66,8 +66,32 @@ def normalize_features(features, normalization_type='none'):
         # 정규화를 하지 않음
         normalized_features = features
 
+    elif normalization_type == 'partial-normalization':
+        # 특정 열에 대해 정규화와 표준화 분리
+        normalized_features = np.zeros_like(features)
+        #['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
+        #   0        1      2       3          4        5       6       7       8         9       10       11       12      [13]       [14]         [15]        16     17      18        19          20          21          22
+        # 정규화할 열
+        normalize_columns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 20, 21, 22]
+        for col in normalize_columns:
+            feature_min = np.min(features[:, col])
+            feature_max = np.max(features[:, col])
+            normalized_features[:, col] = (features[:, col] - feature_min) / (feature_max - feature_min + 1e-8)
+
+        # 표준화할 열
+        standardize_columns = [13, 14]
+        for col in standardize_columns:
+            feature_mean = np.mean(features[:, col])
+            feature_std = np.std(features[:, col])
+            normalized_features[:, col] = (features[:, col] - feature_mean) / (feature_std + 1e-8)
+
+        # 0 고정 스케일링 (MACD_diff, 열 15)
+        fixedScale_columns = 15
+        max_abs_value = np.max(np.abs(features[:, fixedScale_columns]))  # 최대 절대값
+        normalized_features[:, fixedScale_columns] = features[:, fixedScale_columns] / max_abs_value 
+
     else:
-        raise ValueError(f"Unsupported normalization type: {normalization_type}. Use 'min-max', 'standard', or 'none'.")
+        raise ValueError(f"Unsupported normalization type: {normalization_type}. Use 'min-max', 'standard', 'partial-norstand' or 'none'.")
 
     return normalized_features
 
@@ -94,6 +118,30 @@ def normalize_sequence(sequence, normalization_type='none'):
         feature_std = np.std(sequence, axis=0)
         normalized_sequence = (sequence - feature_mean) / (feature_std + 1e-8)
 
+    elif normalization_type == 'partial-normalization':
+        # 특정 열에 대해 정규화와 표준화 분리
+        normalized_sequence = np.zeros_like(sequence)
+        #['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
+        #   0        1      2       3          4        5       6       7       8         9       10       11       12      [13]       [14]         (15)        16      17     18       19           20          21          22
+        # 정규화할 열
+        normalize_columns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 20, 21, 22]
+        for col in normalize_columns:
+            feature_min = np.min(sequence[:, col])
+            feature_max = np.max(sequence[:, col])
+            normalized_sequence[:, col] = (sequence[:, col] - feature_min) / (feature_max - feature_min + 1e-8)
+
+        # 표준화할 열
+        standardize_columns = [13, 14]
+        for col in standardize_columns:
+            feature_mean = np.mean(sequence[:, col])
+            feature_std = np.std(sequence[:, col])
+            normalized_sequence[:, col] = (sequence[:, col] - feature_mean) / (feature_std + 1e-8)
+
+        # 0 고정 스케일링 (MACD_diff, 열 15)
+        fixedScale_columns = 15
+        max_abs_value = np.max(np.abs(sequence[:, fixedScale_columns]))  # 최대 절대값
+        normalized_sequence[:, fixedScale_columns] = sequence[:, fixedScale_columns] / max_abs_value 
+
     elif normalization_type == 'change-rate':
         # Change-rate Normalization: 첫 번째 타임스텝 기준 등락률 계산
         normalized_sequence = (sequence / sequence[0]) - 1
@@ -103,7 +151,7 @@ def normalize_sequence(sequence, normalization_type='none'):
         normalized_sequence = sequence
 
     else:
-        raise ValueError(f"Unsupported normalization type: {normalization_type}. Use 'min-max', 'standard', 'change-rate', or 'none'.")
+        raise ValueError(f"Unsupported normalization type: {normalization_type}. Use 'min-max', 'standard', 'partial-norstand', 'change-rate', or 'none'.")
 
     return normalized_sequence
 #==============================================[ 실행 코드 ]===================================================================================

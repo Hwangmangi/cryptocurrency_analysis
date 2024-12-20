@@ -123,6 +123,7 @@ def fetch_and_preprocess(symbol, scaling='none'):
     df['EMA50'] = talib.EMA(df['close'], timeperiod=50)  # 50시간 지수이동평균
     df['EMA144'] = talib.EMA(df['close'], timeperiod=144)  # 144시간 지수이동평균
     df['MACD'], df['MACD_signal'], _ = talib.MACD(df['close'], fastperiod=12, slowperiod=26, signalperiod=9)
+    df['MACD_diff'] = df['MACD'] - df['MACD_signal']
     df['RSI6'] = talib.RSI(df['close'], timeperiod=6)
     df['RSI12'] = talib.RSI(df['close'], timeperiod=12)
     df['RSI24'] = talib.RSI(df['close'], timeperiod=24)
@@ -135,7 +136,7 @@ def fetch_and_preprocess(symbol, scaling='none'):
 
     # 전처리
 
-    features = ['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal', 'RSI6','RSI12','RSI24', 
+    features = ['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 
                 'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
     # ReturnTransform 이나 LogReturnTransform을 
     if scaling == 'normalize':
@@ -261,8 +262,7 @@ for s in exchange_info['symbols']:
     # print(df.head(20))  # 상위 20개 행 출력
     
     # 파일 경로 설정 (각 코인마다 파일을 따로 저장)
-    file_path = f'C:/code/python/autohunting/dataset_raw2/{symbol}.txt'
-    
+    file_path = f'C:/code/python/autohunting/dataset_raw_1hour23feature/{symbol}.txt'
     # 데이터 텍스트 파일로 저장 (탭 구분)
     df_values = df.values
     with open(file_path, 'w') as f:

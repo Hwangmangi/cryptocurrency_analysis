@@ -109,6 +109,9 @@ def fetch_and_preprocess(symbol, scaling='none'):
 
     # 기술적 지표 계산
      # 이동 평균 추가
+    # df['MACD'], df['MACD_signal'], _ = talib.MACD(df['close'], fastperiod=12, slowperiod=26, signalperiod=9)
+    # df['MACD_diff'] = df['MACD'] - df['MACD_signal']
+
     df['SMA5'] = df['close'].rolling(window=5).mean()  # 5시간 단순이동평균
     df['SMA20'] = df['close'].rolling(window=20).mean()  # 20시간 단순이동평균
     df['SMA50'] = df['close'].rolling(window=50).mean()  # 50시간 단순이동평균
@@ -117,22 +120,21 @@ def fetch_and_preprocess(symbol, scaling='none'):
     df['EMA20'] = talib.EMA(df['close'], timeperiod=20)  # 20시간 지수이동평균
     df['EMA50'] = talib.EMA(df['close'], timeperiod=50)  # 50시간 지수이동평균
     df['EMA144'] = talib.EMA(df['close'], timeperiod=144)  # 144시간 지수이동평균
-    df['MACD'], df['MACD_signal'], _ = talib.MACD(df['close'], fastperiod=12, slowperiod=26, signalperiod=9)
-    df['RSI6'] = talib.RSI(df['close'], timeperiod=6)
-    df['RSI12'] = talib.RSI(df['close'], timeperiod=12)
-    df['RSI24'] = talib.RSI(df['close'], timeperiod=24)
 
-    df['Upper_BB'], df['Middle_BB'], df['Lower_BB'] = talib.BBANDS(df['close'], timeperiod=20, nbdevup=2, nbdevdn=2)
-    df['ADX'] = talib.ADX(df['high'], df['low'], df['close'], timeperiod=14)
+    # df['RSI6'] = talib.RSI(df['close'], timeperiod=6)
+    # df['RSI12'] = talib.RSI(df['close'], timeperiod=12)
+    # df['RSI24'] = talib.RSI(df['close'], timeperiod=24)
+
+    # df['Upper_BB'], df['Middle_BB'], df['Lower_BB'] = talib.BBANDS(df['close'], timeperiod=20, nbdevup=2, nbdevdn=2)
+    # df['ADX'] = talib.ADX(df['high'], df['low'], df['close'], timeperiod=14)
 
     # 가장 긴 기간을 가진 기술적 지표로 인한 결측값 제거
     df.dropna(inplace=True)
 
     # 전처리
-    features = ['open', 'high', 'low', 'close', 'volume', 'MACD', 'MACD_signal', 'RSI6','RSI12','RSI24', 
-                'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
-    features = ['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal', 'RSI6','RSI12','RSI24', 
-                'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
+    # features = ['open', 'high', 'low', 'close', 'volume','MACD', 'MACD_signal','MACD_diff', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144',  'RSI6','RSI12','RSI24', 
+    #             'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
+    features = ['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144']
     # ReturnTransform 이나 LogReturnTransform을 
     if scaling == 'normalize':
         df[features] = (df[features] - df[features].min()) / (df[features].max() - df[features].min())
