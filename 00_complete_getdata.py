@@ -4,6 +4,7 @@ import talib
 from binance.client import Client
 from datetime import datetime, timedelta
 import ccxt
+#=============================================[ 주요 파라미터 ]========================================================================
 
 # Binance API Client 설정 (자신의 API 키와 시크릿 키를 여기에 입력)
 api_key = 'dQe5j00uyrvcyeJRGXQHRflYqCRZR3KTMBsVsKivpE8COOxN2RwxFyfFbZrFD6OZ'
@@ -35,6 +36,7 @@ Client.KLINE_INTERVAL_1WEEK    # '1w' : 1주봉
 # 월봉
 Client.KLINE_INTERVAL_1MONTH   # '1M' : 1개월봉
 '''
+#============================================[ 주요 함수 ]============================================================================
 
 def fetch_listing_date(client, symbol, interval):
     klines = client.get_klines(symbol=symbol, interval=interval, limit=1)
@@ -84,7 +86,7 @@ def fetch_all_klines_from_listing(client, symbol, interval):
     ])
 
     # 필요한 컬럼만 반환하며 숫자 데이터로 변환
-    df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']].astype(float)
+    df = df[['timestamp', 'volume', 'open', 'high', 'low', 'close']].astype(float)
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')  # timestamp를 datetime으로 변환
 
     return df
@@ -114,6 +116,7 @@ def fetch_and_preprocess(symbol, scaling='none'):
 
     # 기술적 지표 계산
      # 이동 평균 추가
+    df['Upper_BB'], df['Middle_BB'], df['Lower_BB'] = talib.BBANDS(df['close'], timeperiod=20, nbdevup=2, nbdevdn=2)
     df['SMA5'] = df['close'].rolling(window=5).mean()  # 5시간 단순이동평균
     df['SMA20'] = df['close'].rolling(window=20).mean()  # 20시간 단순이동평균
     df['SMA50'] = df['close'].rolling(window=50).mean()  # 50시간 단순이동평균
@@ -127,17 +130,40 @@ def fetch_and_preprocess(symbol, scaling='none'):
     df['RSI6'] = talib.RSI(df['close'], timeperiod=6)
     df['RSI12'] = talib.RSI(df['close'], timeperiod=12)
     df['RSI24'] = talib.RSI(df['close'], timeperiod=24)
-
-    df['Upper_BB'], df['Middle_BB'], df['Lower_BB'] = talib.BBANDS(df['close'], timeperiod=20, nbdevup=2, nbdevdn=2)
     df['ADX'] = talib.ADX(df['high'], df['low'], df['close'], timeperiod=14)
+
+    df['SAR'] = talib.SAR(df['high'], df['low'], acceleration=0.02, maximum=0.2)
+    df['Stoch_K'], df['Stoch_D'] = talib.STOCH(df['high'], df['low'], df['close'], 
+                                           fastk_period=14, slowk_period=3, slowd_period=3)
+    df['Williams_R'] = talib.WILLR(df['high'], df['low'], df['close'], timeperiod=14)
+    df['CCI'] = talib.CCI(df['high'], df['low'], df['close'], timeperiod=20)
+
+    df['OBV'] = talib.OBV(df['close'], df['volume'])
+    df['Chaikin_Osc'] = talib.ADOSC(df['high'], df['low'], df['close'], df['volume'], fastperiod=3, slowperiod=10)
+    df['Momentum'] = talib.MOM(df['close'], timeperiod=10)
+    df['ROC'] = talib.ROC(df['close'], timeperiod=10)
+    df['ATR'] = talib.ATR(df['high'], df['low'], df['close'], timeperiod=14)
+
+    df['STDDEV'] = talib.STDDEV(df['close'], timeperiod=14, nbdev=1)
+    df['VWAP'] = (df['close'] * df['volume']).cumsum() / df['volume'].cumsum()
+    df['Pivot'] = (df['high'] + df['low'] + df['close']) / 3
+    df['Resistance1'] = 2 * df['Pivot'] - df['low']
+    df['Support1'] = 2 * df['Pivot'] - df['high']
 
     # 가장 긴 기간을 가진 기술적 지표로 인한 결측값 제거
     df.dropna(inplace=True)
 
     # 전처리
 
-    features = ['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 
-                'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
+    features = ['open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB',
+                'volume', 
+                'SMA5', 'SMA20', 'SMA50', 'SMA144', 
+                'EMA5','EMA20', 'EMA50', 'EMA144', 
+                'MACD', 'MACD_signal','MACD_diff', 
+                'RSI6','RSI12','RSI24', 
+                'ADX',
+                'SAR', 'Stoch_K', 'Stoch_D', 'Williams_R', 'CCI', 'OBV', 'Chaikin_Osc', 'Momentum', 'ROC', 'ATR', 'STDDEV', 'VWAP', 'Pivot', 'Resistance1', 'Support1']
+    
     # ReturnTransform 이나 LogReturnTransform을 
     if scaling == 'normalize':
         df[features] = (df[features] - df[features].min()) / (df[features].max() - df[features].min())
@@ -241,6 +267,7 @@ data = np.loadtxt(file_path, delimiter='\t')
 # [104, 3] 위치의 데이터 출력 (0-based index)
 print(data.shape,type(data),data[103, 2])
 '''
+#==============================================[ 실행 코드 ]===================================================================================
 
 exchange_info = client.get_exchange_info()
 
@@ -262,7 +289,7 @@ for s in exchange_info['symbols']:
     # print(df.head(20))  # 상위 20개 행 출력
     
     # 파일 경로 설정 (각 코인마다 파일을 따로 저장)
-    file_path = f'C:/code/python/autohunting/dataset_raw_1hour23feature/{symbol}.txt'
+    file_path = f'C:/code/python/autohunting/dataset_raw_1hour38feature/{symbol}.txt'
     # 데이터 텍스트 파일로 저장 (탭 구분)
     df_values = df.values
     with open(file_path, 'w') as f:

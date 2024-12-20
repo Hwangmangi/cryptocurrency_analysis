@@ -83,7 +83,7 @@ def fetch_all_klines_from_listing(client, symbol, interval):
     ])
 
     # 필요한 컬럼만 반환하며 숫자 데이터로 변환
-    df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']].astype(float)
+    df = df[['timestamp', 'volume', 'open', 'high', 'low', 'close']].astype(float)
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')  # timestamp를 datetime으로 변환
 
     return df
@@ -134,7 +134,10 @@ def fetch_and_preprocess(symbol, scaling='none'):
     # 전처리
     # features = ['open', 'high', 'low', 'close', 'volume','MACD', 'MACD_signal','MACD_diff', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144',  'RSI6','RSI12','RSI24', 
     #             'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
-    features = ['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144']
+    features = ['volume','open', 'high', 
+                'low', 'close', 
+                 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20',
+                   'EMA50', 'EMA144']
     # ReturnTransform 이나 LogReturnTransform을 
     if scaling == 'normalize':
         df[features] = (df[features] - df[features].min()) / (df[features].max() - df[features].min())

@@ -2,13 +2,43 @@ import os
 import numpy as np
 import tensorflow as tf
 from binance.client import Client
+
+#============================================[ partial-normalization 할때 필요한거]==================================================================================
+
+'''        normalized_sequence = np.zeros_like(sequence)
+        #['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
+        # (  0        1      2       3 )         4        5       6       7       8         9       10       11       12      [13]       [14]         (15)        16      17     18       19           20          21          22
+        # 1. 정규화할 열
+        normalize_columns = [16, 17, 18, 19, 20, 21, 22]
+        for col in normalize_columns:
+            feature_min = np.min(sequence[:, col])
+            feature_max = np.max(sequence[:, col])
+            normalized_sequence[:, col] = (sequence[:, col] - feature_min) / (feature_max - feature_min + 1e-8)
+
+        # 2. 표준화할 열
+        standardize_columns = [13, 14]
+        for col in standardize_columns:
+            feature_mean = np.mean(sequence[:, col])
+            feature_std = np.std(sequence[:, col])
+            normalized_sequence[:, col] = (sequence[:, col] - feature_mean) / (feature_std + 1e-8)
+
+        # 3. Change-rate 정규화
+        change_rate_columns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+        for col in change_rate_columns:
+            normalized_sequence[:, col] = (sequence[:, col] / sequence[0, col]) - 1
+
+        # 4. 0 고정 스케일링 (MACD_diff, 열 15)
+        fixedScale_columns = 15
+        max_abs_value = np.max(np.abs(sequence[:, fixedScale_columns]))  # 최대 절대값
+        normalized_sequence[:, fixedScale_columns] = sequence[:, fixedScale_columns] / max_abs_value 
+'''
 #============================================[ 사용자 설정 파라미터 ]==================================================================================
 tfrecord_train_filename = '1hour23feature2_TRAIN.tfrecord'
 tfrecord_val_filename = '1hour23feature2_VAL.tfrecord'
 sequence_length = 30  # 시퀀스 길이
-feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
-all_normalization = 'partial-normalization' # 전체 데이터 정규화 'min-max', 'standard', 'partial-normalization', 'none'
-sequence_normalization = 'none' # 시퀀스 정규화: 'min-max', 'standard', 'partial-normalization', 'change-rate', 'none'
+feature_dim = 38  # 한 샘플의 특성 수 (레이블 제외)
+all_normalization = 'none' # 전체 데이터 정규화 'min-max', 'standard', 'partial-normalization', 'none'
+sequence_normalization = 'partial-normailzation' # 시퀀스 정규화: 'min-max', 'standard', 'partial-normalization', 'change-rate', 'none'
 #=============================================[ 주요 파라미터 ]========================================================================
 # Binance API 설정
 api_key = 'dQe5j00uyrvcyeJRGXQHRflYqCRZR3KTMBsVsKivpE8COOxN2RwxFyfFbZrFD6OZ'
@@ -16,7 +46,7 @@ api_secret = 'kCPemcQpcvw9L1DhH4bIQXtNJASR5mLQT8KtJNb39PNGrjh7Hr8HYB4xd2ncIuH2'
 
 client = Client(api_key, api_secret)
 # 데이터 경로 및 파라미터 설정
-data_path = r'C:\code\python\autohunting\dataset_raw_1hour23feature'
+data_path = r'C:\code\python\autohunting\dataset_raw_1hour38feature'
 output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
 tfrecord_train_path = os.path.join(output_dir, tfrecord_train_filename)
 tfrecord_val_path = os.path.join(output_dir, tfrecord_val_filename)
@@ -71,8 +101,9 @@ def normalize_features(features, normalization_type='none'):
     elif normalization_type == 'partial-normalization':
         # 특정 열에 대해 정규화와 표준화 분리
         normalized_features = np.zeros_like(features)
-        #['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
-        #   0        1      2       3          4        5       6       7       8         9       10       11       12      [13]       [14]         [15]        16     17      18        19          20          21          22
+        #[ 'open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB','volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24',  'ADX']
+        #  ( 0        1       2       3          4         5             6  )     (7)      (  8      9       10       11)    ( 12     13       14       15 )     ( 16       17    )      |18|       ( 19      20      21 )  (22)
+        #() :min-max, []:standard, {}:change-rate, ||:zero center        
         # 1. 정규화할 열
         normalize_columns = [16, 17, 18, 19, 20, 21, 22]
         for col in normalize_columns:
@@ -128,30 +159,41 @@ def normalize_sequence(sequence, normalization_type='none'):
     elif normalization_type == 'partial-normalization':
         # 특정 열에 대해 정규화와 표준화 분리
         normalized_sequence = np.zeros_like(sequence)
-        #['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
-        #   0        1      2       3          4        5       6       7       8         9       10       11       12      [13]       [14]         (15)        16      17     18       19           20          21          22
-        # 정규화할 열
-        normalize_columns = [16, 17, 18, 19, 20, 21, 22]
-        for col in normalize_columns:
-            feature_min = np.min(sequence[:, col])
-            feature_max = np.max(sequence[:, col])
-            normalized_sequence[:, col] = (sequence[:, col] - feature_min) / (feature_max - feature_min + 1e-8)
-
-        # 표준화할 열
-        # standardize_columns = [13, 14]
-        # for col in standardize_columns:
-        #     feature_mean = np.mean(sequence[:, col])
-        #     feature_std = np.std(sequence[:, col])
-        #     normalized_sequence[:, col] = (sequence[:, col] - feature_mean) / (feature_std + 1e-8)
-
-        # 0 고정 스케일링 (MACD_diff, 열 15)
-        fixedScale_columns = 15
+        #[ 'open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB','volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24',  'ADX']
+        #  ( 0        1       2       3          4         5             6  )     (7)      (  8      9       10       11)    ( 12     13       14       15 )     ( 16       17    )      |18|       ( 19      20      21 )  (22)
+        #() :min-max, []:standard, {}:change-rate, ||:zero center        
+        # open high low close  Upper_BB Middle_BB Lower_BB
+        feature_min = np.min(sequence[:, 0:7])
+        feature_max = np.max(sequence[:, 0:7])
+        normalized_sequence[:, 0:7] = (sequence[:, 0:7] - feature_min) / (feature_max - feature_min)
+        # volume
+        feature_min = np.min(sequence[:, 7])
+        feature_max = np.max(sequence[:, 7])
+        normalized_sequence[:, 7] = (sequence[:, 7] - feature_min) / (feature_max - feature_min)
+        # SMA5, SMA20, SMA50, SMA144
+        feature_min = np.min(sequence[:, 8:12])
+        feature_max = np.max(sequence[:, 8:12])
+        normalized_sequence[:, 8:12] = (sequence[:, 8:12] - feature_min) / (feature_max - feature_min)
+        # EMA5, EMA20, EMA50, EMA144
+        feature_min = np.min(sequence[:, 12:16])
+        feature_max = np.max(sequence[:, 12:16])
+        normalized_sequence[:, 12:16] = (sequence[:, 12:16] - feature_min) / (feature_max - feature_min)        
+        #   MACD, MACD_signal
+        feature_min = np.min(sequence[:, 16:18])
+        feature_max = np.max(sequence[:, 16:18])
+        normalized_sequence[:, 16:18] = (sequence[:, 16:18] - feature_min) / (feature_max - feature_min)
+        # MACD_diff
+        fixedScale_columns = 18
         max_abs_value = np.max(np.abs(sequence[:, fixedScale_columns]))  # 최대 절대값
         normalized_sequence[:, fixedScale_columns] = sequence[:, fixedScale_columns] / max_abs_value 
-
-        change_rate_columns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-        for col in change_rate_columns:
-            normalized_sequence[:, col] = (sequence[:, col] / sequence[0, col]) - 1
+        # RSI6, RSI12, RSI24
+        feature_min = np.min(sequence[:, 19:22])
+        feature_max = np.max(sequence[:, 19:22])
+        normalized_sequence[:, 19:22] = (sequence[:, 19:22] - feature_min) / (feature_max - feature_min)
+        # ADX
+        feature_min = np.min(sequence[:, 22])
+        feature_max = np.max(sequence[:, 22])
+        normalized_sequence[:, 22] = (sequence[:, 22] - feature_min) / (feature_max - feature_min)
 
     elif normalization_type == 'change-rate':
         # Change-rate Normalization: 첫 번째 타임스텝 기준 등락률 계산
