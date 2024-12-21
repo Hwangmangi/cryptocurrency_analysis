@@ -168,28 +168,28 @@ def normalize_sequence(sequence, normalization_type='none'):
         #() :min-max, []:standard,  {}:zero center  , ||:change-rate,
         normalized_sequence = np.zeros_like(sequence)
 
-        max_abs_value = np.max(np.abs(features[:, 0:7]))  # 최대 절대값
-        normalized_sequence[:, 0:7] = features[:, 0:7] / max_abs_value 
+        max_abs_value = np.max(np.abs(sequence[:, 0:7]))  # 최대 절대값
+        normalized_sequence[:, 0:7] = sequence[:, 0:7] / max_abs_value 
         
-        max_abs_value = np.max(np.abs(features[:, 7]))  # 최대 절대값
-        normalized_sequence[:, 7] = features[:, 7] / max_abs_value 
+        max_abs_value = np.max(np.abs(sequence[:, 7]))  # 최대 절대값
+        normalized_sequence[:, 7] = sequence[:, 7] / max_abs_value 
 
-        max_abs_value = np.max(np.abs(features[:, 8:12]))  # 최대 절대값
-        normalized_sequence[:, 8:12] = features[:, 8:12] / max_abs_value 
+        max_abs_value = np.max(np.abs(sequence[:, 8:12]))  # 최대 절대값
+        normalized_sequence[:, 8:12] = sequence[:, 8:12] / max_abs_value 
 
-        max_abs_value = np.max(np.abs(features[:, 12:16]))  # 최대 절대값
-        normalized_sequence[:, 12:16] = features[:, 12:16] / max_abs_value 
+        max_abs_value = np.max(np.abs(sequence[:, 12:16]))  # 최대 절대값
+        normalized_sequence[:, 12:16] = sequence[:, 12:16] / max_abs_value 
 
-        max_abs_value = np.max(np.abs(features[:,16:19]))  # 최대 절대값
-        normalized_sequence[:, 16:19] = features[:, 16:19] / max_abs_value 
+        max_abs_value = np.max(np.abs(sequence[:,16:19]))  # 최대 절대값
+        normalized_sequence[:, 16:19] = sequence[:, 16:19] / max_abs_value 
 
-        max_abs_value = np.max(np.abs(features[:, 19:22]))  # 최대 절대값
-        normalized_sequence[:, 19:22] = features[:, 19:22] / max_abs_value 
+        max_abs_value = np.max(np.abs(sequence[:, 19:22]))  # 최대 절대값
+        normalized_sequence[:, 19:22] = sequence[:, 19:22] / max_abs_value 
 
         fixedScale_columns = [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37]
         for col in fixedScale_columns:
-            max_abs_value = np.max(np.abs(features[:, col]))  # 최대 절대값
-            normalized_sequence[:, col] = features[:, col] / max_abs_value 
+            max_abs_value = np.max(np.abs(sequence[:, col]))  # 최대 절대값
+            normalized_sequence[:, col] = sequence[:, col] / max_abs_value 
 
     elif normalization_type == 'change-rate':
         # Change-rate Normalization: 첫 번째 타임스텝 기준 등락률 계산
