@@ -6,7 +6,7 @@ api_key = 'dQe5j00uyrvcyeJRGXQHRflYqCRZR3KTMBsVsKivpE8COOxN2RwxFyfFbZrFD6OZ'
 api_secret = 'kCPemcQpcvw9L1DhH4bIQXtNJASR5mLQT8KtJNb39PNGrjh7Hr8HYB4xd2ncIuH2'
 
 client = Client(api_key, api_secret)
-data_path = r'C:\code\python\autohunting\dataset_raw_1hour23feature'
+data_path = r'C:\code\python\autohunting\dataset_raw_1hour38feature'
 
 exchange_info = client.get_exchange_info()
 
@@ -52,5 +52,5 @@ for s in exchange_info['symbols']:
     # 이상치가 있으면 출력
     if outliers:
         print(f"File: {file_path}")
-        for feature_idx, outlier_indices in outliers:
-            print(f"Feature {feature_idx} contains outliers at indices: {outlier_indices}")
+        # for feature_idx, outlier_indices in outliers:
+        #     print(f"Feature {feature_idx} contains outliers at indices: {outlier_indices}")
