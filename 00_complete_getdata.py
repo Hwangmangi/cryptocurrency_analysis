@@ -155,8 +155,8 @@ def fetch_and_preprocess(symbol, scaling='none'):
 
     # 전처리
 
-    features = ['open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB',
-                'volume', 
+    features = ['volume', 
+                'open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB',
                 'SMA5', 'SMA20', 'SMA50', 'SMA144', 
                 'EMA5','EMA20', 'EMA50', 'EMA144', 
                 'MACD', 'MACD_signal','MACD_diff', 

@@ -1,0 +1,403 @@
+#=======================================================================================================
+batch = 256
+lr = 0.001
+output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
+train_tfrecord_filename = '1hour30seq23feature2_TRAIN.tfrecord'   -> Standardization
+val_tfrecord_filename = '1hour30seq23feature2_VAL.tfrecord'
+sequence_length = 30  # 시퀀스 길이
+feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
+
+def transformer_lstm_model(input_shape):
+    inputs = tf.keras.layers.Input(shape=input_shape)
+    x = PositionEncoding()(inputs)
+    attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=64, num_heads=4)(x, x)
+    attn_output2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attn_output1 + x)  # 잔차 연결
+    x_ff1 = tf.keras.layers.Dense(128, activation='relu')(attn_output2)
+    x_ff2 = tf.keras.layers.Dense(23, activation='relu')(x_ff1)
+    dense_out = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x_ff2 + attn_output1 + x)  # 잔차 연결
+    lstm_out = tf.keras.layers.LSTM(64)(dense_out)
+    output = tf.keras.layers.Dense(1, activation='sigmoid')(lstm_out)
+
+    return tf.keras.models.Model(inputs, output)
+
+Epoch 1/100
+    180656/180656 [==============================] - 3236s 18ms/step - loss: 0.5740 - accuracy: 0.7299 - val_loss: 0.5897 - val_accuracy: 0.7169
+Epoch 2/100
+    180656/180656 [==============================] - 3632s 20ms/step - loss: 0.5720 - accuracy: 0.7307 - val_loss: 0.5874 - val_accuracy: 0.7178
+Epoch 3/100
+    180656/180656 [==============================] - 3623s 20ms/step - loss: 0.5710 - accuracy: 0.7310 - val_loss: 0.5852 - val_accuracy: 0.7187
+Epoch 4/100
+    180656/180656 [==============================] - 3639s 20ms/step - loss: 0.5700 - accuracy: 0.7312 - val_loss: 0.5854 - val_accuracy: 0.7187
+Epoch 5/100
+    180656/180656 [==============================] - 3622s 20ms/step - loss: 0.5689 - accuracy: 0.7315 - val_loss: 0.5845 - val_accuracy: 0.7191
+Epoch 6/100
+    180656/180656 [==============================] - 3602s 20ms/step - loss: 0.5680 - accuracy: 0.7318 - val_loss: 0.5845 - val_accuracy: 0.7192
+Epoch 7/100 
+    157251/180656 [=========================>....] - ETA: 7:06 - loss: 0.5675 - accuracy: 0.7317
+
+
+#=======================================================================================================
+batch = 256
+lr = 0.01
+output_dir = r'C:\code\python\autohunting\dataset_TFRecord'   -> Standardization
+train_tfrecord_filename = '1hour30seq23feature2_TRAIN.tfrecord' 
+val_tfrecord_filename = '1hour30seq23feature2_VAL.tfrecord'
+sequence_length = 30  # 시퀀스 길이
+feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
+
+def transformer_lstm_model(input_shape):
+    inputs = tf.keras.layers.Input(shape=input_shape)
+    x = PositionEncoding()(inputs)
+    attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=64, num_heads=4)(x, x)
+    attn_output2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attn_output1 + x)  # 잔차 연결
+    x_ff1 = tf.keras.layers.Dense(128, activation='relu')(attn_output2)
+    x_ff2 = tf.keras.layers.Dense(23, activation='relu')(x_ff1)
+    dense_out = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x_ff2 + attn_output1 + x)  # 잔차 연결
+    lstm_out = tf.keras.layers.LSTM(64)(dense_out)
+    output = tf.keras.layers.Dense(1, activation='sigmoid')(lstm_out)
+
+    return tf.keras.models.Model(inputs, output)
+None
+Epoch 1/100
+2024-12-22 09:48:08.760214: I tensorflow/stream_executor/cuda/cuda_blas.cc:1614] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+2024-12-22 09:48:09.396344: I tensorflow/stream_executor/cuda/cuda_dnn.cc:384] Loaded cuDNN version 8101
+134951/Unknown - 2158s 16ms/step - loss: 0.5809 - accuracy: 0.7269
+
+#=======================================================================================================
+batch = 256
+lr = 0.002
+
+output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
+train_tfrecord_filename = '1hour30seq23feature3_TRAIN.tfrecord'   -> min-max normalization
+val_tfrecord_filename = '1hour30seq23feature3_VAL.tfrecord'
+sequence_length = 30  # 시퀀스 길이
+feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
+
+def transformer_lstm_model(input_shape):
+    inputs = tf.keras.layers.Input(shape=input_shape)
+    x = PositionEncoding()(inputs)
+    attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=64, num_heads=4)(x, x)
+    attn_output2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attn_output1 + x)  # 잔차 연결
+    x_ff1 = tf.keras.layers.Dense(128, activation='relu')(attn_output2)
+    x_ff2 = tf.keras.layers.Dense(23, activation='relu')(x_ff1)
+    dense_out = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x_ff2 + attn_output1 + x)  # 잔차 연결
+    lstm_out = tf.keras.layers.LSTM(64)(dense_out)
+    output = tf.keras.layers.Dense(1, activation='sigmoid')(lstm_out)
+
+    return tf.keras.models.Model(inputs, output)
+
+None
+Epoch 1/100
+2024-12-22 14:50:10.735470: I tensorflow/stream_executor/cuda/cuda_blas.cc:1614] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+2024-12-22 14:50:12.333585: I tensorflow/stream_executor/cuda/cuda_dnn.cc:384] Loaded cuDNN version 8101
+180656/180656 [==============================] - 2857s 16ms/step - loss: 0.5752 - accuracy: 0.7294 - val_loss: 0.5902 - val_accuracy: 0.7165
+Epoch 2/100
+180656/180656 [==============================] - 3279s 18ms/step - loss: 0.5743 - accuracy: 0.7296 - val_loss: 0.5892 - val_accuracy: 0.7170
+Epoch 3/100
+180656/180656 [==============================] - 3304s 18ms/step - loss: 0.5732 - accuracy: 0.7303 - val_loss: 0.5898 - val_accuracy: 0.7172
+Epoch 4/100
+180656/180656 [==============================] - 2708s 15ms/step - loss: 0.5727 - accuracy: 0.7305 - val_loss: 0.5879 - val_accuracy: 0.7181
+Epoch 5/100
+180656/180656 [==============================] - 3220s 18ms/step - loss: 0.5729 - accuracy: 0.7303 - val_loss: 0.5891 - val_accuracy: 0.7166
+Epoch 6/100
+1673/180656 [..............................] -
+
+
+#=======================================================================================================
+batch = 256
+lr = 0.001
+output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
+train_tfrecord_filename = '1hour30seq23feature2_TRAIN.tfrecord'   -> Standardization
+val_tfrecord_filename = '1hour30seq23feature2_VAL.tfrecord'
+sequence_length = 30  # 시퀀스 길이
+feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
+
+
+def lstm_transformer_model(input_shape):
+    inputs = tf.keras.layers.Input(shape=input_shape)
+    x1 = tf.keras.layers.LSTM(23, return_sequences=True)(inputs)
+    lstm_out = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x1)
+
+    attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=64, num_heads=4)(lstm_out, lstm_out)
+    attn_output2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attn_output1 + lstm_out)  # 잔차 연결
+
+    x_ff1 = tf.keras.layers.Dense(128, activation='relu')(attn_output2)
+    x_ff2 = tf.keras.layers.Dense(23, activation='relu')(x_ff1)
+    dense_out = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x_ff2 + attn_output1 + lstm_out)  # 잔차 연결
+
+    lstm_out2 = tf.keras.layers.LSTM(64)(dense_out)
+    outputs = tf.keras.layers.Dense(1, activation='sigmoid')(lstm_out2)
+    return tf.keras.models.Model(inputs, outputs)
+
+    Model: "model"
+    __________________________________________________________________________________________________
+     Layer (type)                   Output Shape         Param #     Connected to
+    ==================================================================================================
+     input_1 (InputLayer)           [(None, 30, 23)]     0           []
+    
+     lstm (LSTM)                    (None, 30, 23)       4324        ['input_1[0][0]']
+    
+     layer_normalization (LayerNorm  (None, 30, 23)      46          ['lstm[0][0]']
+     alization)
+    
+     multi_head_attention (MultiHea  (None, 30, 23)      24343       ['layer_normalization[0][0]',
+     dAttention)                                                      'layer_normalization[0][0]']
+    
+     tf.__operators__.add (TFOpLamb  (None, 30, 23)      0           ['multi_head_attention[0][0]',
+     da)                                                              'layer_normalization[0][0]']
+    
+     layer_normalization_1 (LayerNo  (None, 30, 23)      46          ['tf.__operators__.add[0][0]']
+     rmalization)
+    
+     dense (Dense)                  (None, 30, 128)      3072        ['layer_normalization_1[0][0]']
+    
+     dense_1 (Dense)                (None, 30, 23)       2967        ['dense[0][0]']
+    
+     tf.__operators__.add_1 (TFOpLa  (None, 30, 23)      0           ['dense_1[0][0]',
+     mbda)                                                            'multi_head_attention[0][0]']
+    
+     tf.__operators__.add_2 (TFOpLa  (None, 30, 23)      0           ['tf.__operators__.add_1[0][0]',
+     mbda)                                                            'layer_normalization[0][0]']
+    
+     layer_normalization_2 (LayerNo  (None, 30, 23)      46          ['tf.__operators__.add_2[0][0]']
+     rmalization)
+    
+     lstm_1 (LSTM)                  (None, 64)           22528       ['layer_normalization_2[0][0]']
+    
+     dense_2 (Dense)                (None, 1)            65          ['lstm_1[0][0]']
+    
+    ==================================================================================================
+    Total params: 57,437
+    Trainable params: 57,437
+    Non-trainable params: 0
+    __________________________________________________________________________________________________
+
+
+    Epoch 1/100
+    2024-12-22 19:51:57.197232: I tensorflow/stream_executor/cuda/cuda_dnn.cc:384] Loaded cuDNN version 8101
+    2024-12-22 19:51:57.959689: I tensorflow/stream_executor/cuda/cuda_blas.cc:1614] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+    180656/180656 [==============================] - 2943s 16ms/step - loss: 0.5724 - accuracy: 0.7305 - val_loss: 0.5883 - val_accuracy: 0.7167
+    Epoch 2/100
+    180656/180656 [==============================] - 2947s 16ms/step - loss: 0.5706 - accuracy: 0.7312 - val_loss: 0.5885 - val_accuracy: 0.7175
+    Epoch 3/100
+    180656/180656 [==============================] - 2986s 17ms/step - loss: 0.5698 - accuracy: 0.7313 - val_loss: 0.5854 - val_accuracy: 0.7175
+    Epoch 4/100
+    2024-12-22 19:51:57.197232: I tensorflow/stream_executor/cuda/cuda_dnn.cc:384] Loaded cuDNN version 8101
+    2024-12-22 19:51:57.959689: I tensorflow/stream_executor/cuda/cuda_blas.cc:1614] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+    180656/180656 [==============================] - 2943s 16ms/step - loss: 0.5724 - accuracy: 0.7305 - val_loss: 0.5883 - val_accuracy: 0.7167
+    Epoch 2/100
+    180656/180656 [==============================] - 2947s 16ms/step - loss: 0.5706 - accuracy: 0.7312 - val_loss: 0.5885 - val_accuracy: 0.7175
+    Epoch 3/100
+    180656/180656 [==============================] - 2986s 17ms/step - loss: 0.5698 - accuracy: 0.7313 - val_loss: 0.5854 - val_accuracy: 0.7175
+    Epoch 4/100
+    180656/180656 [==============================] - 2966s 16ms/step - loss: 0.5692 - accuracy: 0.7315 - val_loss: 0.5836 - val_accuracy: 0.7195
+    2024-12-22 19:51:57.197232: I tensorflow/stream_executor/cuda/cuda_dnn.cc:384] Loaded cuDNN version 8101
+    2024-12-22 19:51:57.959689: I tensorflow/stream_executor/cuda/cuda_blas.cc:1614] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+    180656/180656 [==============================] - 2943s 16ms/step - loss: 0.5724 - accuracy: 0.7305 - val_loss: 0.5883 - val_accuracy: 0.7167
+    Epoch 2/100
+    180656/180656 [==============================] - 2947s 16ms/step - loss: 0.5706 - accuracy: 0.7312 - val_loss: 0.5885 - val_accuracy: 0.7175
+    Epoch 3/100
+    180656/180656 [==============================] - 2986s 17ms/step - loss: 0.5698 - accuracy: 0.7313 - val_loss: 0.5854 - val_accuracy: 0.7175
+    Epoch 4/100
+    180656/180656 [==============================] - 2966s 16ms/step - loss: 0.5692 - accuracy: 0.7315 - val_loss: 0.5836 - val_accuracy: 0.7195
+    Epoch 5/100
+    180656/180656 [==============================] - 2915s 16ms/step - loss: 0.5687 - accuracy: 0.7316 - val_loss: 0.5838 - val_accuracy: 0.7192
+    Epoch 6/100
+    180656/180656 [==============================] - 2918s 16ms/step - loss: 0.5684 - accuracy: 0.7317 - val_loss: 0.5840 - val_accuracy: 0.7198
+    Epoch 7/100
+    180656/180656 [==============================] - 2919s 16ms/step - loss: 0.5682 - accuracy: 0.7318 - val_loss: 0.5853 - val_accuracy: 0.7184
+    Epoch 8/100
+    180656/180656 [==============================] - 2933s 16ms/step - loss: 0.5679 - accuracy: 0.7318 - val_loss: 0.5861 - val_accuracy: 0.7185
+    Epoch 9/100
+    180656/180656 [==============================] - 2931s 16ms/step - loss: 0.5677 - accuracy: 0.7319 - val_loss: 0.5832 - val_accuracy: 0.7195
+    Epoch 10/100
+    180656/180656 [==============================] - 2965s 16ms/step - loss: 0.5678 - accuracy: 0.7319 - val_loss: 0.5836 - val_accuracy: 0.7197
+    Epoch 11/100
+    180656/180656 [==============================] - 2969s 16ms/step - loss: 0.5673 - accuracy: 0.7320 - val_loss: 0.5844 - val_accuracy: 0.7191
+    Epoch 12/100
+    180656/180656 [==============================] - 2975s 16ms/step - loss: 0.5672 - accuracy: 0.7321 - val_loss: 0.5838 - val_accuracy: 0.7196
+    Epoch 13/100
+    180656/180656 [==============================] - 2898s 16ms/step - loss: 0.5690 - accuracy: 0.7317 - val_loss: 0.5975 - val_accuracy: 0.7075
+    Epoch 14/100
+    180656/180656 [==============================] - 2915s 16ms/step - loss: 0.5717 - accuracy: 0.7310 - val_loss: 0.5994 - val_accuracy: 0.7073
+
+
+#=======================================================================================================
+batch = 256
+lr = 0.001
+output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
+train_tfrecord_filename = '1hour30seq23feature2_TRAIN.tfrecord'   -> Standardization
+val_tfrecord_filename = '1hour30seq23feature2_VAL.tfrecord'
+sequence_length = 30  # 시퀀스 길이
+feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
+
+def transformer_lstm_model(input_shape):  잔차연결 제외
+    inputs = tf.keras.layers.Input(shape=input_shape)
+
+    # Transformer 인코더 블록
+    # x = transformer_encoder(inputs)
+    x = PositionEncoding()(inputs)
+
+    # Transformer 인코더 블록
+    # attn_output = tf.keras.layers.MultiHeadAttention(key_dim=64, num_heads=4, dropout=0.1)(x, x)
+    attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=64, num_heads=4)(x, x)
+    # attn_output = tf.keras.layers.Dropout(0.3)(attn_output)
+    attn_output2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attn_output1)  # 잔차 연결
+
+    # 포인트 와이즈 피드포워드 네트워크
+    x_ff1 = tf.keras.layers.Dense(128, activation='relu')(attn_output2)
+    x_ff2 = tf.keras.layers.Dense(23, activation='relu')(x_ff1)
+    # x_ff = tf.keras.layers.Dropout(0.3)(x_ff)
+    dense_out = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x_ff2)  # 잔차 연결
+
+    # LSTM 계층
+    lstm_out = tf.keras.layers.LSTM(64)(dense_out)
+
+    # 출력 계층
+    output = tf.keras.layers.Dense(1, activation='sigmoid')(lstm_out)
+
+    return tf.keras.models.Model(inputs, output)
+    __________________________________________________________________________________________________
+    Layer (type)                   Output Shape         Param #     Connected to
+   ==================================================================================================
+    input_1 (InputLayer)           [(None, 30, 23)]     0           []
+   
+    position_encoding (PositionEnc  (None, 30, 23)      0           ['input_1[0][0]']
+    oding)
+   
+    multi_head_attention (MultiHea  (None, 30, 23)      24343       ['position_encoding[0][0]',
+    dAttention)                                                      'position_encoding[0][0]']
+   
+    layer_normalization (LayerNorm  (None, 30, 23)      46          ['multi_head_attention[0][0]']
+    alization)
+   
+    dense (Dense)                  (None, 30, 128)      3072        ['layer_normalization[0][0]']
+   
+    dense_1 (Dense)                (None, 30, 23)       2967        ['dense[0][0]']
+   
+    layer_normalization_1 (LayerNo  (None, 30, 23)      46          ['dense_1[0][0]']
+    rmalization)
+   
+    lstm (LSTM)                    (None, 64)           22528       ['layer_normalization_1[0][0]']
+   
+    dense_2 (Dense)                (None, 1)            65          ['lstm[0][0]']
+   
+   ==================================================================================================
+   Total params: 53,067
+
+
+   None
+   Epoch 1/100
+   2024-12-23 10:39:52.686899: I tensorflow/stream_executor/cuda/cuda_blas.cc:1614] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+   2024-12-23 10:39:54.506554: I tensorflow/stream_executor/cuda/cuda_dnn.cc:384] Loaded cuDNN version 8101
+   180656/180656 [==============================] - 3484s 19ms/step - loss: 0.5750 - accuracy: 0.7293 - val_loss: 0.5939 - val_accuracy: 0.7115
+   Epoch 4/100
+   180656/180656 [==============================] - 2525s 14ms/step - loss: 0.5727 - accuracy: 0.7306 - val_loss: 0.5883 - val_accuracy: 0.7166
+   Epoch 5/100
+   180656/180656 [==============================] - 2532s 14ms/step - loss: 0.5724 - accuracy: 0.7307 - val_loss: 0.5869 - val_accuracy: 0.7181
+   Epoch 6/100
+   180656/180656 [==============================] - 2508s 14ms/step - loss: 0.5722 - accuracy: 0.7308 - val_loss: 0.5868 - val_accuracy: 0.7183
+   Epoch 7/100
+   180656/180656 [==============================] - 2523s 14ms/step - loss: 0.5723 - accuracy: 0.7307 - val_loss: 0.5861 - val_accuracy: 0.7189
+   Epoch 8/100
+   180655/180656 [============================>.] - ETA: 0s - loss: 0.5720 - accuracy: 0.7309  
+
+
+#=======================================================================================================
+batch = 256
+lr = 0.001
+output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
+train_tfrecord_filename = '1hour30seq23feature2_TRAIN.tfrecord'   -> Standardization
+val_tfrecord_filename = '1hour30seq23feature2_VAL.tfrecord'
+sequence_length = 30  # 시퀀스 길이
+feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
+
+   def transformer_lstm_model(input_shape):
+   inputs = tf.keras.layers.Input(shape=input_shape)
+   x = PositionEncoding()(inputs)
+   attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=64, num_heads=4)(x, x)
+   attn_output2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attn_output1 + x)  # 잔차 연결
+   x_ff1 = tf.keras.layers.Dense(128, activation='tanh')(attn_output2)
+   x_ff2 = tf.keras.layers.Dense(23, activation='tanh')(x_ff1)
+   dense_out = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x_ff2 + attn_output1 + x)  # 잔차 연결
+   lstm_out = tf.keras.layers.LSTM(64)(dense_out)
+   output = tf.keras.layers.Dense(1, activation='sigmoid')(lstm_out)
+
+   return tf.keras.models.Model(inputs, output)
+   Epoch 1/100
+   2024-12-24 02:24:59.745654: I tensorflow/stream_executor/cuda/cuda_blas.cc:1614] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+   2024-12-24 02:25:01.333506: I tensorflow/stream_executor/cuda/cuda_dnn.cc:384] Loaded cuDNN version 8101
+   180656/180656 [==============================] - 2466s 14ms/step - loss: 0.5739 - accuracy: 0.7299 - val_loss: 0.5882 - val_accuracy: 0.7179
+   Epoch 2/100
+   180656/180656 [==============================] - 2439s 13ms/step - loss: 0.5717 - accuracy: 0.7307 - val_loss: 0.5879 - val_accuracy: 0.7184
+   Epoch 3/100
+   180656/180656 [==============================] - 2476s 14ms/step - loss: 0.5704 - accuracy: 0.7310 - val_loss: 0.5853 - val_accuracy: 0.7185
+   Epoch 4/100
+   180656/180656 [==============================] - 2459s 14ms/step - loss: 0.5692 - accuracy: 0.7313 - val_loss: 0.5844 - val_accuracy: 0.7197
+   Epoch 5/100
+   180656/180656 [==============================] - 2469s 14ms/step - loss: 0.5679 - accuracy: 0.7317 - val_loss: 0.5832 - val_accuracy: 0.7199
+   Epoch 6/100
+   180656/180656 [==============================] - 2470s 14ms/step - loss: 0.5668 - accuracy: 0.7321 - val_loss: 0.5837 - val_accuracy: 0.7202
+   Epoch 7/100
+   180656/180656 [==============================] - 2473s 14ms/step - loss: 0.5657 - accuracy: 0.7325 - val_loss: 0.5831 - val_accuracy: 0.7202
+   Epoch 8/100
+   180656/180656 [==============================] - 2475s 14ms/step - loss: 0.5649 - accuracy: 0.7328 - val_loss: 0.5831 - val_accuracy: 0.7203
+   Epoch 9/100
+   180656/180656 [==============================] - 2469s 14ms/step - loss: 0.5642 - accuracy: 0.7330 - val_loss: 0.5823 - val_accuracy: 0.7205
+   Epoch 10/100
+   180656/180656 [==============================] - 2481s 14ms/step - loss  : 0.5636 - accuracy: 0.7332 - val_loss: 0.5816 - val_accuracy: 0.7205
+   Epoch 11/100
+   180656/180656 [==============================] - 2492s 14ms/step - loss: 0.5630 - accuracy: 0.7335 - val_loss: 0.5819 - val_accuracy: 0.7204
+
+
+#=======================================================================================================
+batch = 256
+lr = 0.001
+output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
+train_tfrecord_filename = '1hour30seq23feature2_TRAIN.tfrecord'   -> Standardization
+val_tfrecord_filename = '1hour30seq23feature2_VAL.tfrecord'
+sequence_length = 30  # 시퀀스 길이
+feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
+
+def transformer_lstm_model(input_shape):
+    inputs = tf.keras.layers.Input(shape=input_shape)
+    x = PositionEncoding()(inputs)
+    attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=64, num_heads=4)(x, x)
+    attn_output2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attn_output1 + x)  # 잔차 연결
+    x_ff1 = tf.keras.layers.Dense(46, activation='tanh')(attn_output2)
+    x_ff2 = tf.keras.layers.Dense(23, activation='tanh')(x_ff1)
+    dense_out = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x_ff2 + attn_output1 + x)  # 잔차 연결
+    lstm_out = tf.keras.layers.LSTM(64)(dense_out)
+    output = tf.keras.layers.Dense(1, activation='sigmoid')(lstm_out)
+
+    return tf.keras.models.Model(inputs, output)
+    Epoch 1/100
+    2024-12-24 11:55:36.311222: I tensorflow/stream_executor/cuda/cuda_blas.cc:1614] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+    2024-12-24 11:55:37.011434: I tensorflow/stream_executor/cuda/cuda_dnn.cc:384] Loaded cuDNN version 8101
+    180656/180656 [==============================] - 3388s 19ms/step - loss: 0.5739 - accuracy: 0.7299 - val_loss: 0.5889 - val_accuracy: 0.7162
+    Epoch 2/100
+    180656/180656 [==============================] - 2924s 16ms/step - loss: 0.5719 - accuracy: 0.7307 - val_loss: 0.5878 - val_accuracy: 0.7178
+    Epoch 3/100
+    114156/180656 [=================>............] - ETA: 18:55 - loss: 0.5705 - accuracy: 0.7308
+
+#=======================================================================================================
+batch = 256
+lr = 0.001
+output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
+train_tfrecord_filename = '1hour30seq23feature2_TRAIN.tfrecord'   -> Standardization
+val_tfrecord_filename = '1hour30seq23feature2_VAL.tfrecord'
+sequence_length = 30  # 시퀀스 길이
+feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
+
+    def transformer_lstm_model(input_shape):
+    inputs = tf.keras.layers.Input(shape=input_shape)
+    x = PositionEncoding()(inputs)
+    attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=128, num_heads=8)(x, x)
+    attn_output2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attn_output1 + x)  # 잔차 연결
+    x_ff1 = tf.keras.layers.Dense(46, activation='tanh')(attn_output2) 
+    x_ff2 = tf.keras.layers.Dense(23, activation='tanh')(x_ff1)
+    dense_out = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x_ff2 + attn_output1 + x)  # 잔차 연결
+    lstm_out = tf.keras.layers.LSTM(64)(dense_out)
+    output = tf.keras.layers.Dense(1, activation='sigmoid')(lstm_out)
+
+    return tf.keras.models.Model(inputs, output)

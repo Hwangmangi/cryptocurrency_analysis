@@ -6,8 +6,8 @@ from binance.client import Client
 tfrecord_filename = 'test.tfrecord'
 sequence_length = 30  # 시퀀스 길이
 feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
-all_normalization = 'standard' # 전체 데이터 정규화 'min-max', 'standard', 'patial-norstand', 'none'
-sequence_normalization = 'none' # 시퀀스 정규화: 'min-max', 'standard', 'patial-norstand', 'change-rate', 'none'
+all_normalization = 'none' # 전체 데이터 정규화 'min-max', 'standard', 'patial-norstand', 'none'
+sequence_normalization = 'partial-normalization' # 시퀀스 정규화: 'min-max', 'standard', 'patial-norstand', 'change-rate', 'none'
 #=============================================[ 주요 파라미터 ]========================================================================
 # Binance API 설정
 api_key = 'dQe5j00uyrvcyeJRGXQHRflYqCRZR3KTMBsVsKivpE8COOxN2RwxFyfFbZrFD6OZ'
@@ -15,8 +15,8 @@ api_secret = 'kCPemcQpcvw9L1DhH4bIQXtNJASR5mLQT8KtJNb39PNGrjh7Hr8HYB4xd2ncIuH2'
 
 client = Client(api_key, api_secret)
 # 데이터 경로 및 파라미터 설정
-data_path = r'C:\code\python\autohunting\dataset_raw_1hour23feature'
-output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
+data_path = r'C:\code\python\autohunting\dataset_raw_1hour38feature'
+output_dir = r'C:\code\python\autohunting\dataset_test'
 tfrecord_path = os.path.join(output_dir, tfrecord_filename)
 #============================================[ 주요 함수 ]============================================================================
 # TFRecord 직렬화 함수
@@ -26,7 +26,13 @@ def serialize_example(features, label):
         'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[label])),
     }
     example = tf.train.Example(features=tf.train.Features(feature=feature))
-    return example.SerializeToString()
+    serialized_example = example.SerializeToString()
+
+    # 바이트 형식 확인
+    if not isinstance(serialized_example, bytes):
+        raise ValueError("Serialized example is not bytes")
+    
+    return serialized_example
 # TFRecord 파싱 함수
 def parse_function(proto):
     # TFRecord 데이터에서 사용할 특성 정의
@@ -69,8 +75,9 @@ def normalize_features(features, normalization_type='none'):
     elif normalization_type == 'partial-norstand':
         # 특정 열에 대해 정규화와 표준화 분리
         normalized_features = np.zeros_like(features)
-        #['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
-        #   0        1      2       3          4        5       6       7       8         9       10       11       12      [13]       [14]         [15]        16     17       18      19          20          21          22
+        # ['volume', 'open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5', 'EMA20', 'EMA50', 'EMA144',
+        #  'MACD', 'MACD_signal', 'MACD_diff', 'RSI6', 'RSI12', 'RSI24', 'ADX', 'SAR', 'Stoch_K', 'Stoch_D', 'Williams_R', 'CCI', 'OBV', 'Chaikin_Osc', 'Momentum',
+        #   'ROC', 'ATR', 'STDDEV', 'VWAP', 'Pivot', 'Resistance1', 'Support1', 'label']
         # 정규화할 열
         normalize_columns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 20, 21, 22]
         for col in normalize_columns:
@@ -113,24 +120,36 @@ def normalize_sequence(sequence, normalization_type='none'):
         feature_std = np.std(sequence, axis=0)
         normalized_sequence = (sequence - feature_mean) / (feature_std + 1e-8)
 
-    elif normalization_type == 'partial-norstand':
+    elif normalization_type == 'partial-normalization':
         # 특정 열에 대해 정규화와 표준화 분리
+        # ['volume','open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 
+        #  { 0}       {1       2       3          4         5             6      7}      {  8        9       10       11 }     { 12     13       14       15}
+        #'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'ADX','SAR', 'Stoch_K', 'Stoch_D', 'Williams_R', 'CCI', 'OBV', 'Chaikin_Osc', 'Momentum', 
+        # { 16         17            18  } {  19     20      21}      22    23     24         25          26           27      28     29           30        
+        # 'ROC', 'ATR', 'STDDEV', 'VWAP', 'Pivot', 'Resistance1', 'Support1']
+        #  31     32      33       34      35        36             37
+        #() :min-max, []:standard,  {}:zero center  , ||:change-rate,
         normalized_sequence = np.zeros_like(sequence)
-        #['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
-        #   0        1      2       3          4        5       6       7       8         9       10       11       12      [13]       [14]         [15]       16      17       18      19          20          21           22
-        # 정규화할 열
-        normalize_columns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 20, 21, 22]
-        for col in normalize_columns:
-            feature_min = np.min(sequence[:, col])
-            feature_max = np.max(sequence[:, col])
-            normalized_sequence[:, col] = (sequence[:, col] - feature_min) / (feature_max - feature_min + 1e-8)
+        
+        max_abs_value = np.max(np.abs(sequence[:, 0]))  # 최대 절대값
+        normalized_sequence[:, 0] = sequence[:, 0] / (max_abs_value +1e-8)
 
-        # 표준화할 열
-        standardize_columns = [13, 14, 15]
-        for col in standardize_columns:
-            feature_mean = np.mean(sequence[:, col])
-            feature_std = np.std(sequence[:, col])
-            normalized_sequence[:, col] = (sequence[:, col] - feature_mean) / (feature_std + 1e-8)
+        max_abs_value = np.max(np.abs(sequence[:, 1:16]))  # 최대 절대값
+        normalized_sequence[:, 1:16] = sequence[:, 1:16] / (max_abs_value +1e-8) 
+
+        max_abs_value = np.max(np.abs(sequence[:,16:19]))  # 최대 절대값
+        normalized_sequence[:, 16:19] = sequence[:, 16:19] / (max_abs_value +1e-8) 
+
+        max_abs_value = np.max(np.abs(sequence[:, 19:22]))  # 최대 절대값
+        normalized_sequence[:, 19:22] = sequence[:, 19:22] / (max_abs_value +1e-8) 
+
+        max_abs_value = np.max(np.abs(sequence[:, 22]))  # 최대 절대값
+        normalized_sequence[:, 22] = sequence[:, 22] / (max_abs_value +1e-8) 
+
+        # fixedScale_columns = [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37]
+        # for col in fixedScale_columns:
+        #     max_abs_value = np.max(np.abs(sequence[:, col]))  # 최대 절대값
+        #     normalized_sequence[:, col] = sequence[:, col] / (max_abs_value + 1e-10) 
 
     elif normalization_type == 'change-rate':
         # Change-rate Normalization: 첫 번째 타임스텝 기준 등락률 계산
@@ -150,26 +169,26 @@ print('here1')
 
 with tf.io.TFRecordWriter(tfrecord_path) as writer:
     print('here2')
-    file_path = os.path.join(data_path, f'BTCUSDT.txt')
+    file_path = os.path.join(data_path, f'BCCBTC.txt')
     data = np.loadtxt(file_path, delimiter='\t')
 
     # 마지막 열을 label로 분리
-    features = data[:, :-1]  # 모든 열 중 마지막 제외
+    features = data[:, :feature_dim]  # 모든 열 중 마지막 제외
     labels = data[:, -1].astype(int)  # 마지막 열 (정수형 변환)
     features = normalize_features(features, normalization_type='none') # 전체 데이터 정규화 'min-max', 'standard', 'none'
     print(f'DEBUG : feature.shape : {features.shape}')
-    # 시퀀스 데이터 생성
+
     for i in range(len(features) - sequence_length + 1):
-        sequence = features[i:i + sequence_length]  # 시퀀스 길이로 자르기
-        # print(f'DEBUG : sequence.shape : {sequence.shape}')
-        sequence = normalize_sequence(sequence, normalization_type='none')  # 시퀀스 정규화: 'min-max', 'standard', 'change-rate', 'none'
-        sequence = sequence.flatten()   
-        label = labels[i + sequence_length - 1]  # 시퀀스 끝의 label 사용
-            
-        # TFRecord로 저장
-        example = serialize_example(sequence, label)
-        writer.write(example)
-        
+        try:
+            sequence = features[i:i + sequence_length]
+            sequence = normalize_sequence(sequence, normalization_type=sequence_normalization)
+            sequence = sequence.flatten()
+            label = labels[i + sequence_length - 1]
+            example = serialize_example(sequence, label)
+            writer.write(example)
+        except Exception as e:
+            print(f'Error processing record at index {i}: {e}')
+            continue        
     print(f'Successfully processed and saved BTCUSDT.txt to TFRecord.')
 
 print(f'TFRecord saved to {tfrecord_path}')
@@ -180,23 +199,23 @@ raw_dataset = tf.data.TFRecordDataset(tfrecord_path)
 # 데이터 파싱
 dataset = raw_dataset.map(parse_function)
 
-# 첫 번째, 두 번째, 세 번째 샘플 출력
-for i, (features, label) in enumerate(dataset.take(3)):  # 처음 3개 샘플만 가져옴
-    print(f"Sample {i + 1}:")
-    print(f"Features{features.shape}{type(features)}: {features.numpy()}")
-    print(f"Label{label.shape}{type(label)}: {label.numpy()}\n")
+# # 첫 번째, 두 번째, 세 번째 샘플 출력
+# for i, (features, label) in enumerate(dataset.take(3)):  # 처음 3개 샘플만 가져옴
+#     print(f"Sample {i + 1}:")
+#     print(f"Features{features.shape}{type(features)}: {features.numpy()}")
+#     print(f"Label{label.shape}{type(label)}: {label.numpy()}\n")
 
 
 # 전체 데이터셋을 리스트로 변환 (메모리에 로드)
 all_samples = list(dataset)
 
-# 처음 3개 샘플 출력
-print("First 3 samples:")
-for i in range(3):
-    features, label = all_samples[i]
-    print(f"Sample {i + 1}:")
-    print(f"Features{features.shape}{type(features)}: {features.numpy()}")
-    print(f"Label{label.shape}{type(label)}: {label.numpy()}\n")
+# # 처음 3개 샘플 출력
+# print("First 3 samples:")
+# for i in range(3):
+#     features, label = all_samples[i]
+#     print(f"Sample {i + 1}:")
+#     print(f"Features{features.shape}{type(features)}: {features.numpy()}")
+#     print(f"Label{label.shape}{type(label)}: {label.numpy()}\n")
 
 # 마지막 3개 샘플 출력
 print("Last 3 samples:")

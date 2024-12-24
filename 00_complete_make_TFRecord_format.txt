@@ -1,3 +1,36 @@
+
+#============================================[ partial-normalization 할때 필요한거]==================================================================================
+
+        normalized_sequence = np.zeros_like(sequence)
+        #['open', 'high', 'low', 'close', 'volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'ADX']
+        # (  0        1      2       3 )         4        5       6       7       8         9       10       11       12      [13]       [14]         (15)        16      17     18       19           20          21          22
+        # 1. 정규화할 열
+        normalize_columns = [16, 17, 18, 19, 20, 21, 22]
+        for col in normalize_columns:
+            feature_min = np.min(sequence[:, col])
+            feature_max = np.max(sequence[:, col])
+            normalized_sequence[:, col] = (sequence[:, col] - feature_min) / (feature_max - feature_min + 1e-8)
+
+        # 2. 표준화할 열
+        standardize_columns = [13, 14]
+        for col in standardize_columns:
+            feature_mean = np.mean(sequence[:, col])
+            feature_std = np.std(sequence[:, col])
+            normalized_sequence[:, col] = (sequence[:, col] - feature_mean) / (feature_std + 1e-8)
+
+        # 3. Change-rate 정규화
+        change_rate_columns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+        for col in change_rate_columns:
+            normalized_sequence[:, col] = (sequence[:, col] / sequence[0, col]) - 1
+
+        # 4. 0 고정 스케일링 (MACD_diff, 열 15)
+        fixedScale_columns = 15
+        max_abs_value = np.max(np.abs(sequence[:, fixedScale_columns]))  # 최대 절대값
+        normalized_sequence[:, fixedScale_columns] = sequence[:, fixedScale_columns] / max_abs_value 
+
+
+
+
 elif normalization_type == 'partial-normalization':
 # 특정 열에 대해 정규화와 표준화 분리
 normalized_sequence = np.zeros_like(sequence)
@@ -38,14 +71,17 @@ feature_max = np.max(sequence[:, 22])
 normalized_sequence[:, 22] = (sequence[:, 22] - feature_min) / (feature_max - feature_min)
 
 
-# ['open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB','volume', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 
-#  { 0       1       2       3          4         5             6   }    { 7}      {  8        9       10       11 }     { 12     13       14       15}
+# 특정 열에 대해 정규화와 표준화 분리
+# ['volume','open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 
+#  { 0}       {1       2       3          4         5             6      7}      {  8        9       10       11 }     { 12     13       14       15}
 #'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'ADX','SAR', 'Stoch_K', 'Stoch_D', 'Williams_R', 'CCI', 'OBV', 'Chaikin_Osc', 'Momentum', 
 # { 16         17            18  } {  19     20      21}      22    23     24         25          26           27      28     29           30        
-#'ROC', 'ATR', 'STDDEV', 'VWAP', 'Pivot', 'Resistance1', 'Support1']
+# 'ROC', 'ATR', 'STDDEV', 'VWAP', 'Pivot', 'Resistance1', 'Support1']
 #  31     32      33       34      35        36             37
 #() :min-max, []:standard,  {}:zero center  , ||:change-rate,
-
+['volume', 'open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5', 'EMA20', 'EMA50', 'EMA144',
+ 'MACD', 'MACD_signal', 'MACD_diff', 'RSI6', 'RSI12', 'RSI24', 'ADX', 'SAR', 'Stoch_K', 'Stoch_D', 'Williams_R', 'CCI', 'OBV', 'Chaikin_Osc', 'Momentum',
+  'ROC', 'ATR', 'STDDEV', 'VWAP', 'Pivot', 'Resistance1', 'Support1', 'label']
   elif normalization_type == 'partial-normalization':
   # 특정 열에 대해 정규화와 표준화 분리
   normalized_sequence = np.zeros_like(sequence)
