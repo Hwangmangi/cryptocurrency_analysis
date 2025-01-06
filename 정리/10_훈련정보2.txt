@@ -1,0 +1,9 @@
+#===(1)====================================================================================================
+batch = 64
+lr = 0.001
+
+output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
+train_tfrecord_filename = '1day30seq23feature_TRAIN.tfrecord'   -> min-max normalization
+val_tfrecord_filename = '1day30seq23feature_VAL.tfrecord'
+sequence_length = 30  # 시퀀스 길이
+feature_dim = 38  # 한 샘플의 특성 수 (레이블 제외)

@@ -4,8 +4,8 @@ import tensorflow as tf
 from binance.client import Client
 #============================================[ 사용자 설정 파라미터 ]==================================================================================
 tfrecord_filename = 'test.tfrecord'
-sequence_length = 30  # 시퀀스 길이
-feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
+sequence_length = 50  # 시퀀스 길이
+feature_dim = 38  # 한 샘플의 특성 수 (레이블 제외)
 all_normalization = 'none' # 전체 데이터 정규화 'min-max', 'standard', 'patial-norstand', 'none'
 sequence_normalization = 'partial-normalization' # 시퀀스 정규화: 'min-max', 'standard', 'patial-norstand', 'change-rate', 'none'
 #=============================================[ 주요 파라미터 ]========================================================================
@@ -15,7 +15,7 @@ api_secret = 'kCPemcQpcvw9L1DhH4bIQXtNJASR5mLQT8KtJNb39PNGrjh7Hr8HYB4xd2ncIuH2'
 
 client = Client(api_key, api_secret)
 # 데이터 경로 및 파라미터 설정
-data_path = r'C:\code\python\autohunting\dataset_raw_1hour38feature'
+data_path = r'C:\code\python\autohunting\dataset_raw_1day38feature'
 output_dir = r'C:\code\python\autohunting\dataset_test'
 tfrecord_path = os.path.join(output_dir, tfrecord_filename)
 #============================================[ 주요 함수 ]============================================================================
@@ -123,33 +123,35 @@ def normalize_sequence(sequence, normalization_type='none'):
     elif normalization_type == 'partial-normalization':
         # 특정 열에 대해 정규화와 표준화 분리
         # ['volume','open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB', 'SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 
-        #  { 0}       {1       2       3          4         5             6      7}      {  8        9       10       11 }     { 12     13       14       15}
-        #'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'ADX','SAR', 'Stoch_K', 'Stoch_D', 'Williams_R', 'CCI', 'OBV', 'Chaikin_Osc', 'Momentum', 
-        # { 16         17            18  } {  19     20      21}      22    23     24         25          26           27      28     29           30        
-        # 'ROC', 'ATR', 'STDDEV', 'VWAP', 'Pivot', 'Resistance1', 'Support1']
-        #  31     32      33       34      35        36             37
+        #  [ 0]      [1       2       3          4         5             6      7         8        9       10       11        12     13       14       15 ]
+        #'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'ADX' 
+        # [ 16         17            18  ]   [19     20      21]     [22] 
         #() :min-max, []:standard,  {}:zero center  , ||:change-rate,
+
         normalized_sequence = np.zeros_like(sequence)
         
-        max_abs_value = np.max(np.abs(sequence[:, 0]))  # 최대 절대값
-        normalized_sequence[:, 0] = sequence[:, 0] / (max_abs_value +1e-8)
+        feature_mean = np.mean(sequence[:, 0])
+        feature_std = np.std(sequence[:, 0])
+        normalized_sequence[:, 0] = (sequence[:, 0] - feature_mean) / (feature_std + 1e-8)
 
-        max_abs_value = np.max(np.abs(sequence[:, 1:16]))  # 최대 절대값
-        normalized_sequence[:, 1:16] = sequence[:, 1:16] / (max_abs_value +1e-8) 
+        feature_mean = np.mean(sequence[:, 1:16])
+        feature_std = np.std(sequence[:, 1:16])
+        normalized_sequence[:, 1:16] = (sequence[:, 1:16] - feature_mean) / (feature_std + 1e-8)
 
-        max_abs_value = np.max(np.abs(sequence[:,16:19]))  # 최대 절대값
-        normalized_sequence[:, 16:19] = sequence[:, 16:19] / (max_abs_value +1e-8) 
+        feature_mean = np.mean(sequence[:, 16:19])
+        feature_std = np.std(sequence[:, 16:19])
+        normalized_sequence[:, 16:19] = (sequence[:, 16:19] - feature_mean) / (feature_std + 1e-8)
 
-        max_abs_value = np.max(np.abs(sequence[:, 19:22]))  # 최대 절대값
-        normalized_sequence[:, 19:22] = sequence[:, 19:22] / (max_abs_value +1e-8) 
+        feature_mean = np.mean(sequence[:, 19:22])
+        feature_std = np.std(sequence[:, 19:22])
+        normalized_sequence[:, 19:22] = (sequence[:, 19:22] - feature_mean) / (feature_std + 1e-8)
 
-        max_abs_value = np.max(np.abs(sequence[:, 22]))  # 최대 절대값
-        normalized_sequence[:, 22] = sequence[:, 22] / (max_abs_value +1e-8) 
 
-        # fixedScale_columns = [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37]
-        # for col in fixedScale_columns:
-        #     max_abs_value = np.max(np.abs(sequence[:, col]))  # 최대 절대값
-        #     normalized_sequence[:, col] = sequence[:, col] / (max_abs_value + 1e-10) 
+        for col in range(22, 38):
+            feature_mean = np.mean(sequence[:, col])
+            feature_std = np.std(sequence[:, col])
+            normalized_sequence[:, col] = (sequence[:, col] - feature_mean) / (feature_std + 1e-8)
+
 
     elif normalization_type == 'change-rate':
         # Change-rate Normalization: 첫 번째 타임스텝 기준 등락률 계산
@@ -224,3 +226,11 @@ for i in range(-3, 0):
     print(f"Sample {len(all_samples) + i + 1}:")
     print(f"Features{features.shape}{type(features)}: {features.numpy()}")
     print(f"Label{label.shape}{type(label)}: {label.numpy()}\n")
+
+with open("1day_38feature_none_partialstandard.txt", "w") as txtfile:
+    for i in range(-3, 0):  # 마지막 3개 반복
+        features, label = all_samples[i]
+        txtfile.write(f"Sample {len(all_samples) + i + 1}:\n")
+        txtfile.write(f"Features: {features.numpy().tolist()}\n\n")
+
+print("Last 3 features saved as 'last_3_features.txt'")

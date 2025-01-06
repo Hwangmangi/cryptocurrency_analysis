@@ -3,19 +3,19 @@ import numpy as np
 import tensorflow as tf
 
 #============================================[ 사용자 설정 파라미터 ]==================================================================================
-batch = 256
+batch = 64
 lr = 0.001
 #===========================================[ 주요 파라미터 ]============================================================================
 output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
-train_tfrecord_filename = '1hour30seq23feature2_TRAIN.tfrecord'
-val_tfrecord_filename = '1hour30seq23feature2_VAL.tfrecord'
+train_tfrecord_filename = '1day30seq38feature_TRAIN.tfrecord'
+val_tfrecord_filename = '1day30seq38feature_VAL.tfrecord'
 
 # TFRecord 파일 경로
 train_tfrecord_path = os.path.join(output_dir, train_tfrecord_filename)
 val_tfrecord_path = os.path.join(output_dir, val_tfrecord_filename)
 
 sequence_length = 30  # 시퀀스 길이
-feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)
+feature_dim = 38  # 한 샘플의 특성 수 (레이블 제외)
 #===========================================[ 주요 함수 ]============================================================================
 def parse_function(proto):
     # TFRecord 데이터에서 사용할 특성 정의
@@ -91,16 +91,41 @@ def transformer_encoder(inputs):
 def transformer_lstm_model(input_shape):
     inputs = tf.keras.layers.Input(shape=input_shape)
     x = PositionEncoding()(inputs)
-    attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=128, num_heads=8)(x, x)
-    attn_output2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attn_output1 + x)  # 잔차 연결
-    x_ff1 = tf.keras.layers.Dense(46, activation='tanh')(attn_output2) 
-    x_ff2 = tf.keras.layers.Dense(23, activation='tanh')(x_ff1)
-    dense_out = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x_ff2 + attn_output1 + x)  # 잔차 연결
-    lstm_out = tf.keras.layers.LSTM(64)(dense_out)
+    
+    # === Transformer Block 1 ===
+    attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=128, num_heads=16)(x, x)
+    attn_output2 = tf.keras.layers.Dropout(0.2)(attn_output1)
+    attn_output1_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(attn_output2 + x)
+    x_ff1 = tf.keras.layers.Dense(256, activation='relu')(attn_output1_norm)
+    x_ff2 = tf.keras.layers.Dense(38, activation='relu')(x_ff1)
+    x_ff3 = tf.keras.layers.Dropout(0.2)(x_ff2)
+    x_ff1_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(x_ff3 + attn_output1_norm + x)
+
+    # === Transformer Block 2 ===
+    attn_output3 = tf.keras.layers.MultiHeadAttention(key_dim=128, num_heads=16)(x_ff1_norm, x_ff1_norm)
+    attn_output4 = tf.keras.layers.Dropout(0.2)(attn_output3)
+    attn_output2_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(attn_output4 + x_ff1_norm)
+    x_ff4 = tf.keras.layers.Dense(256, activation='relu')(attn_output2_norm)
+    x_ff5 = tf.keras.layers.Dense(38, activation='relu')(x_ff4)
+    x_ff6 = tf.keras.layers.Dropout(0.2)(x_ff5)
+    x_ff2_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(x_ff6 + attn_output2_norm + x_ff1_norm)
+
+    # === Transformer Block 3 ===
+    attn_output5 = tf.keras.layers.MultiHeadAttention(key_dim=128, num_heads=16)(x_ff2_norm, x_ff2_norm)
+    attn_output6 = tf.keras.layers.Dropout(0.2)(attn_output5)
+    attn_output3_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(attn_output6 + x_ff2_norm)
+    x_ff7 = tf.keras.layers.Dense(256, activation='relu')(attn_output3_norm)
+    x_ff8 = tf.keras.layers.Dense(38, activation='relu')(x_ff7)
+    x_ff9 = tf.keras.layers.Dropout(0.2)(x_ff8)
+    x_ff3_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(x_ff9 + attn_output3_norm + x_ff2_norm)
+
+    # === LSTM Layer ===
+    lstm_out = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=False))(x_ff3_norm)
+
+    # === Output Layer ===
     output = tf.keras.layers.Dense(1, activation='sigmoid')(lstm_out)
 
     return tf.keras.models.Model(inputs, output)
-
 def lstm_transformer_model(input_shape):
     inputs = tf.keras.layers.Input(shape=input_shape)
 
@@ -180,10 +205,10 @@ def train_model():
     model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
     
     # EarlyStopping 콜백
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, restore_best_weights=True)
     
     # ModelCheckpoint 콜백
-    checkpoint_path = r"C:\code\python\autohunting\model\model_checkpoint2.h5"
+    checkpoint_path = r"C:\code\python\autohunting\model\model_checkpoin18.h5"
     model_checkpoint = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor='val_loss', save_best_only=True)
     
     print(model.summary())
@@ -192,9 +217,12 @@ def train_model():
     model.fit(train_dataset, epochs=100, validation_data=val_dataset, callbacks=[early_stopping, model_checkpoint])
     
     # 학습이 끝난 후 모델 저장
-    final_model_path = r"C:\code\python\autohunting\model\final_model2.h5"
+    final_model_path = r"C:\code\python\autohunting\model\final_model18.h5"
     model.save(final_model_path)
 # 저장된 모델을 불러와서 재학습시키는 함수
+
+
+
 def retrain_model(saved_model_path):
     # 훈련 및 검증 데이터셋 로드
     print('Loading training dataset...')
@@ -204,25 +232,26 @@ def retrain_model(saved_model_path):
     val_dataset = load_tfrecord_dataset(val_tfrecord_path, batch_size=batch)
 
     # 저장된 모델 로드
-    model = tf.keras.models.load_model(saved_model_path)
+    custom_objects = {'PositionEncoding': PositionEncoding}
+    model = tf.keras.models.load_model(saved_model_path, custom_objects=custom_objects)
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 
     model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
     
     # EarlyStopping 콜백
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
     
     # ModelCheckpoint 콜백
-    checkpoint_path = r"C:\code\python\autohunting\model\model_checkpoint_retrain.h5"
+    checkpoint_path = r"C:\code\python\autohunting\model\model_checkpoint8.h5"
     model_checkpoint = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor='val_loss', save_best_only=True)
     
     print(model.summary())
     # 모델 재학습
-    model.fit(train_dataset, epochs=100, validation_data=val_dataset, callbacks=[early_stopping, model_checkpoint])
+    model.fit(train_dataset, epochs=500, validation_data=val_dataset, callbacks=[early_stopping, model_checkpoint])
     
     # 재학습이 끝난 후 모델 저장
-    final_model_path = r"C:\code\python\autohunting\model\final_model_retrain.h5"
+    final_model_path = r"C:\code\python\autohunting\model\final_model8.h5"
     model.save(final_model_path)
-#==========================================[ 실행 코드 ]=====================================================================================
+# ==========================================[ 실행 코드 ]=====================================================================================
 train_model()
-# retrain_model(r"C:\code\python\autohunting\model\final_model1.h5")
+# retrain_model(r"C:\code\python\autohunting\model\model_checkpoint8.h5")

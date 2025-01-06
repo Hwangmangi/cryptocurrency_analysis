@@ -4,9 +4,9 @@ import tensorflow as tf
 from binance.client import Client
 
 #============================================[ 사용자 설정 파라미터 ]==================================================================================
-tfrecord_train_filename = '1hour30seq23feature4_TRAIN.tfrecord'
-tfrecord_val_filename = '1hour30seq23feature4_VAL.tfrecord'
-data_path = r'C:\code\python\autohunting\dataset_raw_1hour38feature'
+tfrecord_train_filename = '1day30seq23feature_TRAIN.tfrecord'
+tfrecord_val_filename = '1day30seq23feature_VAL.tfrecord'
+data_path = r'C:\code\python\autohunting\dataset_raw_1day38feature'
 output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
 sequence_length = 30  # 시퀀스 길이
 feature_dim = 23  # 한 샘플의 특성 수 (레이블 제외)

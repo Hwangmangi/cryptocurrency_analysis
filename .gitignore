@@ -5,3 +5,5 @@ dataset_TFRecord
 except_crypto
 dataset_test
 dataset_raw_1hour38feature
+dataset_raw_1day38feature
+dataset_raw_6hour38feature

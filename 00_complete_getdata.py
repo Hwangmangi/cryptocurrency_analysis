@@ -106,7 +106,7 @@ def fetch_and_preprocess(symbol, scaling='none'):
     """
     
     # 전체 기간 1시간봉 데이터 가져오기
-    df = fetch_all_klines_from_listing(client, symbol, Client.KLINE_INTERVAL_1HOUR)
+    df = fetch_all_klines_from_listing(client, symbol, Client.KLINE_INTERVAL_6HOUR)
     if df is None:
         print(f"데이터를 가져오지 못했습니다: {symbol}")
         return None  # 함수 종료
@@ -289,7 +289,7 @@ for s in exchange_info['symbols']:
     # print(df.head(20))  # 상위 20개 행 출력
     
     # 파일 경로 설정 (각 코인마다 파일을 따로 저장)
-    file_path = f'C:/code/python/autohunting/dataset_raw_1hour38feature/{symbol}.txt'
+    file_path = f'C:/code/python/autohunting/dataset_raw_6hour 38feature/{symbol}.txt'
     # 데이터 텍스트 파일로 저장 (탭 구분)
     df_values = df.values
     with open(file_path, 'w') as f:
