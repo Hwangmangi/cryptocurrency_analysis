@@ -4,8 +4,8 @@ import tensorflow as tf
 from binance.client import Client
 
 #============================================[ 사용자 설정 파라미터 ]==================================================================================
-tfrecord_train_filename = '1day30seq38feature_TRAIN.tfrecord'
-tfrecord_val_filename = '1day30seq38feature_VAL.tfrecord'
+tfrecord_train_filename = '1day50seq38feature_TRAIN.tfrecord'
+tfrecord_val_filename = '1day50seq38feature_VAL.tfrecord'
 data_path = r'C:\code\python\autohunting\dataset_raw_1day38feature'
 output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
 sequence_length = 50  # 시퀀스 길이
@@ -148,7 +148,7 @@ def normalize_sequence(sequence, normalization_type='none'):  # 이게 하나의
         feature_mean = np.mean(sequence[:, 19:22])
         feature_std = np.std(sequence[:, 19:22])
         normalized_sequence[:, 19:22] = (sequence[:, 19:22] - feature_mean) / (feature_std + 1e-8)
-        
+
         for col in range(22, 38):
             feature_mean = np.mean(sequence[:, col])
             feature_std = np.std(sequence[:, col])
