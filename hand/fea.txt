@@ -1,0 +1,74 @@
+features = ['volume', 'open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB','SMA5', 'SMA20', 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6','RSI12','RSI24', 'ADX','SAR', 'Stoch_K', 'Stoch_D', 'Williams_R', 'CCI', 'OBV', 'Chaikin_Osc', 'Momentum', 'ROC', 'ATR', 'STDDEV', 'VWAP', 'Pivot', 'Resistance1', 'Support1', 'label']
+
+# 알고리즘
+1.하나의 파일에서
+2.이 파일들은 코인데이터를 타임스템에 따라 위의 feature정보를 저장한 데이터이다. 
+2-2, macd가 신호선을 상향 통과하는 골든크로스 되고 이어 macd가 신호선을 하향 통과하는 데드크로스가 되는 지점은 반복적으로 나타난다.
+2-3. 따라서 하나의 파일의 타임스템 전구간에서 , 골든크로스 이후 데드크로스가 되는 구간이 많이 있을것이다. 내가 원하는건 그 구간에서 골든크로스 시점 close값과 데드 크로스 시점 close값의 등락률 정보를 모으는거다
+3.계산된 등락률은 뭐 리스트 등에 저장
+4.파일들에 대해서 1~3번을 반복한다.
+5.얻어진 등락률들을 시각적인 그래프로 표현한다(가로축은 -20% ~ 20%, 세로축은 빈도수). 또한 평균 등락률 역시 계산을한다
+
+# 코인데이터파일 형태
+코인 데이터 파일은 'C:\code\python\autohunting\dataset_raw_1day38feature'경로에 저장되어있으며, 각각의 파일명은 코인심볼이름이고, 확장자는 txt이다.
+파일은 2차원 데이터의 형태이며, features = 
+['volume', 'open', 'high', 'low', 'close',
+ 'Upper_BB', 'Middle_BB', 'Lower_BB','SMA5', 'SMA20', 
+ 'SMA50', 'SMA144', 'EMA5','EMA20', 'EMA50', 
+ 'EMA144', 'MACD', 'MACD_signal','MACD_diff', 'RSI6',
+ 'RSI12','RSI24', 'ADX','SAR', 'Stoch_K', 
+ 'Stoch_D', 'Williams_R', 'CCI', 'OBV', 'Chaikin_Osc', 
+ 'Momentum', 'ROC', 'ATR', 'STDDEV', 'VWAP', 
+ 'Pivot', 'Resistance1', 'Support1', 'label']
+를 가진다.
+
+
+#아래에 코인 심볼값을 얻고 파일을 불러오는 코드를 보여주겠다
+'import pandas as pd
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+from binance.client import Client
+
+# 등락률 저장 리스트
+return_rates = []
+
+# Binance API 설정
+api_key = 'dQe5j00uyrvcyeJRGXQHRflYqCRZR3KTMBsVsKivpE8COOxN2RwxFyfFbZrFD6OZ'
+api_secret = 'kCPemcQpcvw9L1DhH4bIQXtNJASR5mLQT8KtJNb39PNGrjh7Hr8HYB4xd2ncIuH2'
+client = Client(api_key, api_secret)
+
+# 데이터 경로
+data_path = r'C:\code\python\autohunting\dataset_raw_1day38feature'
+
+# Exchange 정보 가져오기
+exchange_info = client.get_exchange_info()
+
+# 각 코인 데이터 처리
+for s in exchange_info['symbols']:
+    symbol = s['symbol']
+    file_path = os.path.join(data_path, f'{symbol}.txt')
+    
+    if not os.path.exists(file_path):
+        print(f"File not found: {file_path}")
+        continue
+    
+    try:
+        # 데이터 로드
+        data = np.loadtxt(file_path, delimiter='\t')
+        print(f"{symbol}: {data.shape}")
+        # 데이터가 충분한지 확인
+        if data.shape[1] < 18:
+            print(f"Not enough columns in {file_path}")
+            continue
+        
+        # MACD, Signal, Close 값 추출
+        macd = data[:, 16]      # MACD 열
+        signal = data[:, 17]    # Signal 열
+        macd_diff = data[:, 18] # MACD - Signal 열
+        close = data[:, 4]      # Close 열
+        
+    except Exception as e:
+        print(f"Error reading {file_path}: {e}")
+        continue
+        '

@@ -7,14 +7,14 @@ batch = 64
 lr = 0.001
 #===========================================[ 주요 파라미터 ]============================================================================
 output_dir = r'C:\code\python\autohunting\dataset_TFRecord'
-train_tfrecord_filename = '1day30seq38feature_TRAIN.tfrecord'
-val_tfrecord_filename = '1day30seq38feature_VAL.tfrecord'
+train_tfrecord_filename = '1day50seq38feature_TRAIN.tfrecord'
+val_tfrecord_filename = '1day50seq38feature_VAL.tfrecord'
 
 # TFRecord 파일 경로
 train_tfrecord_path = os.path.join(output_dir, train_tfrecord_filename)
 val_tfrecord_path = os.path.join(output_dir, val_tfrecord_filename)
 
-sequence_length = 30  # 시퀀스 길이
+sequence_length = 50  # 시퀀스 길이
 feature_dim = 38  # 한 샘플의 특성 수 (레이블 제외)
 #===========================================[ 주요 함수 ]============================================================================
 def parse_function(proto):
@@ -91,42 +91,30 @@ def transformer_encoder(inputs):
 def transformer_lstm_model(input_shape):
     inputs = tf.keras.layers.Input(shape=input_shape)
     x = PositionEncoding()(inputs)
-    
-    # === Transformer Block 1 ===
-    attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=128, num_heads=16)(x, x)
-    attn_output2 = tf.keras.layers.Dropout(0.2)(attn_output1)
-    attn_output1_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(attn_output2 + x)
-    x_ff1 = tf.keras.layers.Dense(256, activation='relu')(attn_output1_norm)
-    x_ff2 = tf.keras.layers.Dense(38, activation='relu')(x_ff1)
-    x_ff3 = tf.keras.layers.Dropout(0.2)(x_ff2)
-    x_ff1_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(x_ff3 + attn_output1_norm + x)
+    attn_output1 = tf.keras.layers.MultiHeadAttention(key_dim=512, num_heads=16)(x, x)
+    attn_output2 = tf.keras.layers.LayerNormalization(epsilon=1e-8)(attn_output1 + x)  # 잔차 연결
+    x_ff1 = tf.keras.layers.Dense(512, activation='tanh')(attn_output2) 
+    x_ff2 = tf.keras.layers.Dense(38, activation='tanh')(x_ff1) 
+    dense_out = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x_ff2 + attn_output1 + x)  # 잔차 연결
 
-    # === Transformer Block 2 ===
-    attn_output3 = tf.keras.layers.MultiHeadAttention(key_dim=128, num_heads=16)(x_ff1_norm, x_ff1_norm)
-    attn_output4 = tf.keras.layers.Dropout(0.2)(attn_output3)
-    attn_output2_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(attn_output4 + x_ff1_norm)
-    x_ff4 = tf.keras.layers.Dense(256, activation='relu')(attn_output2_norm)
-    x_ff5 = tf.keras.layers.Dense(38, activation='relu')(x_ff4)
-    x_ff6 = tf.keras.layers.Dropout(0.2)(x_ff5)
-    x_ff2_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(x_ff6 + attn_output2_norm + x_ff1_norm)
 
-    # === Transformer Block 3 ===
-    attn_output5 = tf.keras.layers.MultiHeadAttention(key_dim=128, num_heads=16)(x_ff2_norm, x_ff2_norm)
-    attn_output6 = tf.keras.layers.Dropout(0.2)(attn_output5)
-    attn_output3_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(attn_output6 + x_ff2_norm)
-    x_ff7 = tf.keras.layers.Dense(256, activation='relu')(attn_output3_norm)
-    x_ff8 = tf.keras.layers.Dense(38, activation='relu')(x_ff7)
-    x_ff9 = tf.keras.layers.Dropout(0.2)(x_ff8)
-    x_ff3_norm = tf.keras.layers.LayerNormalization(epsilon=1e-8)(x_ff9 + attn_output3_norm + x_ff2_norm)
-
-    # === LSTM Layer ===
-    lstm_out = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=False))(x_ff3_norm)
-
-    # === Output Layer ===
-    output = tf.keras.layers.Dense(1, activation='sigmoid')(lstm_out)
+    f1 = tf.keras.layers.Flatten()(dense_out)
+    f2 = tf.keras.layers.Dense(512, activation='tanh')(f1)
+    f3 = tf.keras.layers.Dropout(0.3)(f2)
+    f4 = tf.keras.layers.Dense(256, activation='tanh')(f3)
+    f5 = tf.keras.layers.Dropout(0.3)(f4)
+    f6 = tf.keras.layers.Dense(128, activation='tanh')(f5)
+    f7 = tf.keras.layers.Dropout(0.3)(f6)
+    f_out = tf.keras.layers.Dense(64, activation='tanh')(f7)
+    # lstm_out = tf.keras.layers.GlobalMaxPooling1D()(dense_out)  # 시퀀스 차원을 축소
+    output = tf.keras.layers.Dense(1, activation='sigmoid')(f_out)
 
     return tf.keras.models.Model(inputs, output)
+
 def lstm_transformer_model(input_shape):
+
+
+
     inputs = tf.keras.layers.Input(shape=input_shape)
 
     # LSTM 계층
@@ -208,7 +196,7 @@ def train_model():
     early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, restore_best_weights=True)
     
     # ModelCheckpoint 콜백
-    checkpoint_path = r"C:\code\python\autohunting\model\model_checkpoin18.h5"
+    checkpoint_path = r"C:\code\python\autohunting\model\model_checkpoin19.h5"
     model_checkpoint = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor='val_loss', save_best_only=True)
     
     print(model.summary())
@@ -239,10 +227,10 @@ def retrain_model(saved_model_path):
     model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
     
     # EarlyStopping 콜백
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, restore_best_weights=True)
     
     # ModelCheckpoint 콜백
-    checkpoint_path = r"C:\code\python\autohunting\model\model_checkpoint8.h5"
+    checkpoint_path = r"C:\code\python\autohunting\model\model_checkpoint18.h5"
     model_checkpoint = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor='val_loss', save_best_only=True)
     
     print(model.summary())
@@ -250,8 +238,8 @@ def retrain_model(saved_model_path):
     model.fit(train_dataset, epochs=500, validation_data=val_dataset, callbacks=[early_stopping, model_checkpoint])
     
     # 재학습이 끝난 후 모델 저장
-    final_model_path = r"C:\code\python\autohunting\model\final_model8.h5"
+    final_model_path = r"C:\code\python\autohunting\model\final_model18.h5"
     model.save(final_model_path)
 # ==========================================[ 실행 코드 ]=====================================================================================
 train_model()
-# retrain_model(r"C:\code\python\autohunting\model\model_checkpoint8.h5")
+#retrain_model(r"C:\code\python\autohunting\model\model_checkpoin18.h5")

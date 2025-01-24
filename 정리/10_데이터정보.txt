@@ -158,7 +158,7 @@ sequence_normalization = 'partial-normalization'
 #  [31]   [32]   [33]      [34]    [35]        [36]           [37] 
 #----------------------------------------------------------------------------------------------------------------------------------------------------------
 
-●(tfrecord5). 6hour50seq38feature_TRAIN.tfrecord, 6hour50seq38feature_VAL.tfrecord
+●(tfrecord6). 6hour50seq38feature_TRAIN.tfrecord, 6hour50seq38feature_VAL.tfrecord
 sequence_length = 50
 feature_dim = 38 
 all_normalization = 'none' 
