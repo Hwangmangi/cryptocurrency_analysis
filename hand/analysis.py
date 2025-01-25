@@ -2,16 +2,22 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.stats import linregress
 
 # 데이터 경로
-data_path = r'C:\code\python\autohunting\dataset_raw_2hour38feature'
+# data_path = r'C:\code\python\autohunting\dataset_raw_1day38feature'
+data_path = r'D:\cyptocurrency_dataset\dataset_raw_1hour38feature'
+
 
 # 등락률 저장 리스트
 return_rates = []
+positive_rate_ema20 = []
 positive_rate_ema50 = []
 positive_rate_ema144 = []
+negative_rate_ema20 = []
 negative_rate_ema50 = []
 negative_rate_ema144 = []
+
 # 데이터 파일 처리
 for filename in os.listdir(data_path):
     if filename.endswith('.txt'):
@@ -33,6 +39,7 @@ for filename in os.listdir(data_path):
             macd_diff = data['MACD_diff'].values
             # print(f'{filename}:macd_diff : {macd_diff.shape}{macd_diff[:50]}')
             close = data['close'].values
+            ema20= data['EMA20'].values
             ema50 = data['EMA50'].values
             ema144 = data['EMA144'].values
             
@@ -61,17 +68,23 @@ for filename in os.listdir(data_path):
                                 i = j + 1 
                                 break
                             if(return_rate < 0):
-                                gradient_ema50 = np.diff(ema50[golden_cross_index:dead_cross_index])
-                                mean_gradient_ema50 = np.mean(gradient_ema50)
-                                gradient_ema144 = np.diff(ema144[golden_cross_index:dead_cross_index])
-                                mean_gradient_ema144 = np.mean(gradient_ema144)
+                                x20 = np.arange(len(ema20[golden_cross_index:dead_cross_index]))
+                                mean_gradient_ema20, _, _, _, _ = linregress(x20,ema20[golden_cross_index:dead_cross_index])
+                                x50 = np.arange(len(ema50[golden_cross_index:dead_cross_index]))
+                                mean_gradient_ema50, _, _, _, _ = linregress(x50,ema50[golden_cross_index:dead_cross_index])
+                                x144 = np.arange(len(ema144[golden_cross_index:dead_cross_index]))
+                                mean_gradient_ema144, _, _, _, _ = linregress(x144,ema144[golden_cross_index:dead_cross_index])
+                                negative_rate_ema20.append(mean_gradient_ema20)
                                 negative_rate_ema50.append(mean_gradient_ema50)
                                 negative_rate_ema144.append(mean_gradient_ema144)   
                             else:
-                                gradient_ema50 = np.diff(ema50[golden_cross_index:dead_cross_index])
-                                mean_gradient_ema50 = np.mean(gradient_ema50)
-                                gradient_ema144 = np.diff(ema144[golden_cross_index:dead_cross_index])
-                                mean_gradient_ema144 = np.mean(gradient_ema144)
+                                x20 = np.arange(len(ema20[golden_cross_index:dead_cross_index]))
+                                mean_gradient_ema20, _, _, _, _ = linregress(x20,ema20[golden_cross_index:dead_cross_index])
+                                x50 = np.arange(len(ema50[golden_cross_index:dead_cross_index]))
+                                mean_gradient_ema50, _, _, _, _ = linregress(x50,ema50[golden_cross_index:dead_cross_index])
+                                x144 = np.arange(len(ema144[golden_cross_index:dead_cross_index]))
+                                mean_gradient_ema144, _, _, _, _ = linregress(x144,ema144[golden_cross_index:dead_cross_index])
+                                positive_rate_ema20.append(mean_gradient_ema20)
                                 positive_rate_ema50.append(mean_gradient_ema50)
                                 positive_rate_ema144.append(mean_gradient_ema144)
                             # print(f"#{filename}Golden Cross: {golden_cross_index}, Dead Cross: {dead_cross_index}, Return Rate: {return_rate:.2f}%")
@@ -97,8 +110,10 @@ filtered_return_rates = [rate for rate in return_rates if -30 <= rate <= 30]
 
 # 필터링된 평균 등락률 계산
 average_filtered_return_rate = np.mean(filtered_return_rates) if filtered_return_rates else 0
+average_positive_rate_ema20 = np.mean(positive_rate_ema20) if positive_rate_ema20 else 0
 average_positive_rate_ema50 = np.mean(positive_rate_ema50) if positive_rate_ema50 else 0
 average_positive_rate_ema144 = np.mean(positive_rate_ema144) if positive_rate_ema144 else 0
+average_negative_rate_ema20 = np.mean(negative_rate_ema20) if negative_rate_ema20 else 0
 average_negative_rate_ema50 = np.mean(negative_rate_ema50) if negative_rate_ema50 else 0
 average_negative_rate_ema144 = np.mean(negative_rate_ema144) if negative_rate_ema144 else 0
 
@@ -119,8 +134,13 @@ plt.show()
 print(f"Filtered Average Return Rate: {average_filtered_return_rate:.2f}%")
 print(f"Positive Return Rate Count: {positive_count}")
 print(f"Negative Return Rate Count: {negative_count}")
+print(f"양수 등락율 ema20평균 : {average_positive_rate_ema20:.2f}")
 print(f"양수 등락율 ema50평균 : {average_positive_rate_ema50:.2f}")
-print(f"음수 등락율 ema50평균 : {average_negative_rate_ema50:.2f}")
 print(f"양수 등락율 ema144평균 : {average_positive_rate_ema144:.2f}")
+print(f"음수 등락율 ema20평균 : {average_negative_rate_ema20:.2f}")
+print(f"음수 등락율 ema50평균 : {average_negative_rate_ema50:.2f}")
 print(f"음수 등락율 ema144평균 : {average_negative_rate_ema144:.2f}")
+print(f'ema20 영향강도 : {average_positive_rate_ema20/average_negative_rate_ema20:.2f}')
+print(f'ema50 영향강도 : {average_positive_rate_ema50/average_negative_rate_ema50:.2f}')
+print(f'ema144 영향강도 : {average_positive_rate_ema144/average_negative_rate_ema144:.2f}')
 print(f"돈 딸 확률 : {positive_count/(positive_count+negative_count)*100:.2f}%")

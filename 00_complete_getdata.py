@@ -106,7 +106,7 @@ def fetch_and_preprocess(symbol, scaling='none'):
     """
     
     # 전체 기간 1시간봉 데이터 가져오기
-    df = fetch_all_klines_from_listing(client, symbol, Client.KLINE_INTERVAL_2HOUR)
+    df = fetch_all_klines_from_listing(client, symbol, Client.KLINE_INTERVAL_4HOUR)
     if df is None:
         print(f"데이터를 가져오지 못했습니다: {symbol}")
         return None  # 함수 종료
@@ -119,11 +119,29 @@ def fetch_and_preprocess(symbol, scaling='none'):
     df['Upper_BB'], df['Middle_BB'], df['Lower_BB'] = talib.BBANDS(df['close'], timeperiod=20, nbdevup=2, nbdevdn=2)
     df['SMA5'] = df['close'].rolling(window=5).mean()  # 5시간 단순이동평균
     df['SMA20'] = df['close'].rolling(window=20).mean()  # 20시간 단순이동평균
+    df['SMA30'] = df['close'].rolling(window=30).mean()  
+    df['SMA40'] = df['close'].rolling(window=40).mean()  
     df['SMA50'] = df['close'].rolling(window=50).mean()  # 50시간 단순이동평균
+    df['SMA60'] = df['close'].rolling(window=60).mean()  
+    df['SMA70'] = df['close'].rolling(window=70).mean()
+    df['SMA80'] = df['close'].rolling(window=80).mean()
+    df['SMA90'] = df['close'].rolling(window=90).mean()
+    df['SMA100'] = df['close'].rolling(window=100).mean()
+    df['SMA110'] = df['close'].rolling(window=110).mean()
+    df['SMA120'] = df['close'].rolling(window=120).mean()
     df['SMA144'] = df['close'].rolling(window=144).mean()  # 144시간 단순이동평균
     df['EMA5'] = talib.EMA(df['close'], timeperiod=5)  # 20시간 지수이동평균
     df['EMA20'] = talib.EMA(df['close'], timeperiod=20)  # 20시간 지수이동평균
+    df['EMA30'] = talib.EMA(df['close'], timeperiod=30)
+    df['EMA40'] = talib.EMA(df['close'], timeperiod=40)
     df['EMA50'] = talib.EMA(df['close'], timeperiod=50)  # 50시간 지수이동평균
+    df['EMA60'] = talib.EMA(df['close'], timeperiod=60)
+    df['EMA70'] = talib.EMA(df['close'], timeperiod=70)
+    df['EMA80'] = talib.EMA(df['close'], timeperiod=80)
+    df['EMA90'] = talib.EMA(df['close'], timeperiod=90)
+    df['EMA100'] = talib.EMA(df['close'], timeperiod=100)
+    df['EMA110'] = talib.EMA(df['close'], timeperiod=110)
+    df['EMA120'] = talib.EMA(df['close'], timeperiod=120)
     df['EMA144'] = talib.EMA(df['close'], timeperiod=144)  # 144시간 지수이동평균
     df['MACD'], df['MACD_signal'], _ = talib.MACD(df['close'], fastperiod=12, slowperiod=26, signalperiod=9)
     df['MACD_diff'] = df['MACD'] - df['MACD_signal']
@@ -153,12 +171,12 @@ def fetch_and_preprocess(symbol, scaling='none'):
     # 가장 긴 기간을 가진 기술적 지표로 인한 결측값 제거
     df.dropna(inplace=True)
 
-    # 전처리
+    # 전처리'EMA0',
 
     features = ['volume', 
                 'open', 'high', 'low', 'close', 'Upper_BB', 'Middle_BB', 'Lower_BB',
-                'SMA5', 'SMA20', 'SMA50', 'SMA144', 
-                'EMA5','EMA20', 'EMA50', 'EMA144', 
+                'SMA5', 'SMA20','SMA520','SMA40', 'SMA50', 'SMA60','SMA70','SMA80','SMA90','SMA100','SMA110','SMA120','SMA144', 
+                'EMA5','EMA20','EMA30','EMA40', 'EMA50','EMA60','EMA70','EMA80','EMA90','EMA100','EMA110','EMA120', 'EMA144', 
                 'MACD', 'MACD_signal','MACD_diff', 
                 'RSI6','RSI12','RSI24', 
                 'ADX',
@@ -289,7 +307,7 @@ for s in exchange_info['symbols']:
     # print(df.head(20))  # 상위 20개 행 출력
     
     # 파일 경로 설정 (각 코인마다 파일을 따로 저장)
-    file_path = f'C:/code/python/autohunting/dataset_raw_2hour38feature/{symbol}.txt'
+    file_path = f'C:/code/python/autohunting/dataset_raw_4hour56feature/{symbol}.txt'
     # 데이터 텍스트 파일로 저장 (탭 구분)
     df_values = df.values
     with open(file_path, 'w') as f:
